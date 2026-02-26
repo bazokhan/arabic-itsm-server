@@ -11,6 +11,7 @@ Key routes:
 """
 from __future__ import annotations
 
+import gc
 import os
 import threading
 import time
@@ -316,6 +317,26 @@ async def preload_model(model_id: str):
         "loaded": False,
         "error": None,
     }
+
+
+@app.post("/api/models/{model_id}/unload", summary="Unload model from memory (free RAM)")
+async def unload_model(model_id: str):
+    if model_id not in _profiles:
+        raise HTTPException(status_code=404, detail=f"Unknown model_id: {model_id}")
+    with _state_lock:
+        if model_id not in _models:
+            return {"model_id": model_id, "status": "idle", "message": "Model was not loaded"}
+        del _models[model_id]
+        _load_state.pop(model_id, None)
+        _load_events.pop(model_id, None)
+    gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+    return {"model_id": model_id, "status": "idle", "message": "Model unloaded from memory"}
 
 
 @app.post("/api/classify", summary="Classify an Arabic ticket with selected model")

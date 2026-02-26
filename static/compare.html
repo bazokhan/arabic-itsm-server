@@ -30,6 +30,40 @@
       font-size: 0.875rem;
       display: none;
     }
+    /* Model status panel */
+    .models-status {
+      margin-bottom: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .models-status-header {
+      padding: 0.625rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      direction: ltr;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .model-status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      direction: ltr;
+    }
+    .model-status-row:last-child { border-bottom: none; }
+    .model-status-name { font-size: 0.8125rem; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .model-status-bar { flex: 0 0 80px; }
+    .model-status-msg { font-size: 0.72rem; color: var(--text-muted); flex: 0 0 auto; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Results */
     .results-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -74,9 +108,16 @@
       </div>
     </header>
 
+    <!-- Per-model loading status panel -->
+    <div class="models-status" id="modelsStatus" style="display:none;">
+      <div class="models-status-header">
+        <span>Model Status</span>
+        <span id="statusSummary"></span>
+      </div>
+      <div id="statusRows"></div>
+    </div>
+
     <section class="card">
-      <div class="compare-meta" id="meta"></div>
-      <div id="models-list" class="compare-meta" style="margin-bottom:1rem;"></div>
       <div class="samples" id="samples"></div>
       <div class="form-group">
         <label class="form-label" for="title_ar">عنوان التذكرة</label>
@@ -119,7 +160,12 @@
     const resultsEl = document.getElementById('results');
     const errEl = document.getElementById('error');
     const btn = document.getElementById('btn');
-    const metaEl = document.getElementById('meta');
+    const modelsStatus = document.getElementById('modelsStatus');
+    const statusRows = document.getElementById('statusRows');
+    const statusSummary = document.getElementById('statusSummary');
+
+    let _models = [];
+    let _pollTimer = null;
 
     const sampleTickets = [
       { title: 'الـ VPN مش شغال', description: 'اليوزر مش قادر يدخل على الشبكة الداخلية من البيت.' },
@@ -128,14 +174,48 @@
       { title: 'الجهاز بطيء جدا بعد آخر تحديث', description: 'البرامج بتفتح ببطء والجهاز بيهنج بشكل متكرر.' }
     ];
 
-    function showError(msg) {
-      errEl.style.display = 'block';
-      errEl.textContent = msg;
+    function showError(msg) { errEl.style.display = 'block'; errEl.textContent = msg; }
+    function clearError() { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    function modelStatusBadge(m) {
+      if (m.status === 'ready' || m.loaded)
+        return '<span class="badge badge-success" style="font-size:0.7rem;padding:0.15rem 0.5rem;">Ready</span>';
+      if (m.status === 'loading')
+        return `<span class="badge badge-warning" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><div class="spinner" style="width:8px;height:8px;border-width:1.5px;display:inline-block;vertical-align:-2px;margin-right:3px;"></div>${m.progress || 0}%</span>`;
+      if (m.status === 'error')
+        return '<span class="badge badge-error" style="font-size:0.7rem;padding:0.15rem 0.5rem;">Error</span>';
+      return '<span class="badge" style="font-size:0.7rem;padding:0.15rem 0.5rem;background:var(--info-bg);color:var(--info-text);border:none;">Cold</span>';
     }
 
-    function clearError() {
-      errEl.style.display = 'none';
-      errEl.textContent = '';
+    function renderStatusRows(models) {
+      if (!models.length) { modelsStatus.style.display = 'none'; return; }
+      modelsStatus.style.display = 'block';
+      const ready = models.filter(m => m.status === 'ready' || m.loaded).length;
+      statusSummary.textContent = `${ready}/${models.length} ready`;
+      statusRows.innerHTML = models.map(m => `
+        <div class="model-status-row" data-status-id="${m.id}">
+          ${modelStatusBadge(m)}
+          <span class="model-status-name" title="${m.id}">${m.name}</span>
+          <div class="model-status-bar">
+            <div class="progress-bar" style="margin-top:0;"><div class="progress-fill" style="width:${m.progress || 0}%"></div></div>
+          </div>
+          <span class="model-status-msg">${m.status === 'loading' ? (m.message || 'Loading...') : ''}</span>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function updateStatusRow(m) {
+      const row = statusRows.querySelector(`[data-status-id="${m.id}"]`);
+      if (!row) return;
+      const badgeWrap = row.querySelector('.badge, .badge-success, .badge-warning, .badge-error');
+      if (badgeWrap) badgeWrap.outerHTML = modelStatusBadge(m);
+      const fill = row.querySelector('.progress-fill');
+      if (fill) fill.style.width = `${m.progress || 0}%`;
+      const msg = row.querySelector('.model-status-msg');
+      if (msg) msg.textContent = m.status === 'loading' ? (m.message || 'Loading...') : '';
+      const ready = _models.filter(x => x.status === 'ready' || x.loaded).length;
+      statusSummary.textContent = `${ready}/${_models.length} ready`;
     }
 
     function renderSamples() {
@@ -145,8 +225,7 @@
       samplesEl.addEventListener('click', (e) => {
         const chip = e.target.closest('.sample');
         if (!chip) return;
-        const idx = Number(chip.dataset.index);
-        const sample = sampleTickets[idx];
+        const sample = sampleTickets[Number(chip.dataset.index)];
         if (!sample) return;
         document.getElementById('title_ar').value = sample.title;
         document.getElementById('description_ar').value = sample.description;
@@ -176,34 +255,73 @@
       `;
     }
 
-    async function loadMeta() {
+    async function fetchModels() {
       const res = await fetch('/api/models');
       const data = await res.json();
-      const models = data.models || [];
-      const count = models.length;
-      metaEl.textContent = `${count} model(s) configured`;
-      const listEl = document.getElementById('models-list');
-      if (count > 0) {
-        const ids = models.map(m => m.id).join(', ');
-        listEl.innerHTML = `<strong>Runs across:</strong> ${ids}`;
-        listEl.style.display = 'block';
-      } else {
-        listEl.style.display = 'none';
+      _models = data.models || [];
+      return _models;
+    }
+
+    function stopPolling() {
+      if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    }
+
+    function startStatusPolling(onAllReady) {
+      stopPolling();
+      _pollTimer = setInterval(async () => {
+        const models = await fetchModels();
+        models.forEach(updateStatusRow);
+        const anyLoading = models.some(m => m.status === 'loading');
+        const allReady = models.every(m => m.status === 'ready' || m.loaded);
+        if (!anyLoading) {
+          stopPolling();
+          renderStatusRows(models);
+          if (allReady && onAllReady) onAllReady();
+        }
+      }, 900);
+    }
+
+    async function preloadAll() {
+      for (const m of _models) {
+        if (m.status !== 'ready' && !m.loaded) {
+          await fetch(`/api/models/${encodeURIComponent(m.id)}/preload`, { method: 'POST' });
+        }
       }
     }
 
     async function classifyAll() {
       clearError();
-      resultsEl.innerHTML = '';
       const titleAr = document.getElementById('title_ar').value.trim();
       const descriptionAr = document.getElementById('description_ar').value.trim();
-      if (!titleAr) {
-        showError('عنوان التذكرة مطلوب');
-        return;
-      }
-      btn.disabled = true;
-      btn.innerHTML = '<div class="spinner"></div> جاري التصنيف...';
+      if (!titleAr) { showError('عنوان التذكرة مطلوب'); return; }
 
+      btn.disabled = true;
+      resultsEl.innerHTML = '';
+
+      // Check if any models need loading first
+      await fetchModels();
+      const coldModels = _models.filter(m => m.status !== 'ready' && !m.loaded);
+
+      if (coldModels.length > 0) {
+        // Phase 1: preload cold models with live progress
+        btn.innerHTML = `<div class="spinner"></div> تحميل النماذج (${coldModels.length} متبقي)...`;
+        renderStatusRows(_models);
+        await preloadAll();
+        // Poll until all ready, then run classify
+        await new Promise((resolve) => {
+          startStatusPolling(() => resolve());
+          // Also update button text during loading
+          const btnInterval = setInterval(async () => {
+            const ready = _models.filter(m => m.status === 'ready' || m.loaded).length;
+            const loading = _models.filter(m => m.status === 'loading').length;
+            if (loading === 0) { clearInterval(btnInterval); return; }
+            btn.innerHTML = `<div class="spinner"></div> تحميل النماذج (${ready}/${_models.length} جاهز)...`;
+          }, 500);
+        });
+      }
+
+      // Phase 2: run classification across all loaded models
+      btn.innerHTML = '<div class="spinner"></div> جاري التصنيف...';
       try {
         const res = await fetch('/api/classify/all', {
           method: 'POST',
@@ -212,9 +330,11 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-        const items = data.results || [];
-        resultsEl.innerHTML = items.map(renderModel).join('');
+        resultsEl.innerHTML = (data.results || []).map(renderModel).join('');
         lucide.createIcons();
+        // Refresh status panel after classify (models are now loaded)
+        await fetchModels();
+        renderStatusRows(_models);
       } catch (err) {
         showError(err.message);
       } finally {
@@ -225,12 +345,13 @@
     }
 
     btn.addEventListener('click', classifyAll);
-    document.getElementById('title_ar').addEventListener('keydown', e => {
-      if (e.key === 'Enter') classifyAll();
-    });
+    document.getElementById('title_ar').addEventListener('keydown', e => { if (e.key === 'Enter') classifyAll(); });
 
     renderSamples();
-    loadMeta().catch(err => showError(err.message));
+    fetchModels().then(models => {
+      renderStatusRows(models);
+      if (models.some(m => m.status === 'loading')) startStatusPolling(null);
+    }).catch(err => showError(err.message));
 
     document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
     document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');

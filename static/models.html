@@ -81,47 +81,117 @@
 
     lucide.createIcons();
 
-    function warmBadge(model) {
-      if (model.status === 'ready' || model.loaded) {
-        return '<span class="badge badge-success"><i data-lucide="check-circle" style="width:12px;height:12px;vertical-align:-2px;"></i> Ready</span>';
+    let _models = [];
+    let _pollTimer = null;
+
+    function warmBadge(m) {
+      if (m.status === 'ready' || m.loaded) {
+        return '<span class="badge badge-success"><i data-lucide="check-circle" style="width:11px;height:11px;vertical-align:-1px;"></i> Ready</span>';
       }
-      if (model.status === 'loading') {
-        return `<span class="badge badge-warning">Loading ${model.progress || 0}%</span>`;
+      if (m.status === 'loading') {
+        return `<span class="badge badge-warning"><div class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:-3px;margin-right:3px;"></div>${m.progress || 0}%</span>`;
       }
-      return '<span class="badge" style="background:var(--info-bg);color:var(--info-text);border:none;"><i data-lucide="circle" style="width:12px;height:12px;vertical-align:-2px;"></i> Cold</span>';
+      if (m.status === 'error') {
+        return '<span class="badge badge-error">Error</span>';
+      }
+      return '<span class="badge" style="background:var(--info-bg);color:var(--info-text);border:none;">Cold</span>';
     }
 
-    async function loadModels() {
-      const res = await fetch('/api/models');
-      const data = await res.json();
-      const cards = document.getElementById('cards');
-      const meta = document.getElementById('meta');
-      const models = data.models || [];
-
-      if (!models.length) {
-        meta.textContent = 'No model profiles found.';
-        cards.innerHTML = '<div class="empty-card">No checkpoints discovered. Set MODEL_DIRS in .env (semicolon separated directories).</div>';
-        return;
-      }
-
-      meta.textContent = `${models.length} model(s) · Default: ${data.default_model_id || '-'}`;
-      cards.innerHTML = models.map(m => `
-        <article class="model-card">
+    function renderCard(m) {
+      const isReady = m.status === 'ready' || m.loaded;
+      const isLoading = m.status === 'loading';
+      const progress = m.progress || 0;
+      const msg = isLoading && m.message ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.15rem;">${m.message}</div>` : '';
+      const tasks = (m.tasks && m.tasks.length) ? `<div style="font-size:0.72rem;color:var(--text-muted);">Tasks: ${m.tasks.join(', ')}</div>` : '';
+      return `
+        <article class="model-card" data-id="${m.id}">
           <div class="model-card-head">
             <span class="model-title">${m.name}</span>
-            ${warmBadge(m)}
+            <span class="badge-wrap">${warmBadge(m)}</span>
           </div>
           <div class="model-id">${m.id}</div>
           <div class="model-path">${m.path}</div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${m.progress || 0}%"></div></div>
-          <a class="btn btn-primary" href="/models/${encodeURIComponent(m.id)}">
-            <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
-            Open Model
-          </a>
+          ${tasks}
+          ${msg}
+          <div class="progress-bar" style="margin-top:0.5rem;"><div class="progress-fill" style="width:${progress}%"></div></div>
+          <div style="display:flex;gap:0.5rem;margin-top:auto;padding-top:0.5rem;">
+            <a class="btn btn-primary" href="/models/${encodeURIComponent(m.id)}" style="flex:1;justify-content:center;">
+              Open
+            </a>
+            ${isReady ? `<button class="btn btn-danger" data-unload="${m.id}" title="Unload from memory (frees RAM)"><i data-lucide="power" style="width:15px;height:15px;"></i></button>` : ''}
+            ${(!isReady && !isLoading) ? `<button class="btn" data-preload="${m.id}" title="Pre-load into memory"><i data-lucide="zap" style="width:15px;height:15px;"></i></button>` : ''}
+          </div>
         </article>
-      `).join('');
+      `;
+    }
 
+    function bindCardButtons() {
+      document.querySelectorAll('[data-preload]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.preload;
+          btn.disabled = true;
+          await fetch(`/api/models/${encodeURIComponent(id)}/preload`, { method: 'POST' });
+          startPolling();
+        });
+      });
+      document.querySelectorAll('[data-unload]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.unload;
+          btn.disabled = true;
+          await fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' });
+          await refreshAndRender();
+        });
+      });
+    }
+
+    function renderAllCards(models) {
+      const cards = document.getElementById('cards');
+      if (!models.length) {
+        cards.innerHTML = '<div class="empty-card">No checkpoints discovered. Set MODEL_DIRS in .env.</div>';
+      } else {
+        cards.innerHTML = models.map(renderCard).join('');
+      }
       lucide.createIcons();
+      bindCardButtons();
+    }
+
+    function updateCardInPlace(m) {
+      const card = document.querySelector(`.model-card[data-id="${m.id}"]`);
+      if (!card) return;
+      const wrap = card.querySelector('.badge-wrap');
+      if (wrap) { wrap.innerHTML = warmBadge(m); lucide.createIcons(); }
+      const fill = card.querySelector('.progress-fill');
+      if (fill) fill.style.width = `${m.progress || 0}%`;
+    }
+
+    async function refreshAndRender() {
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      _models = data.models || [];
+      document.getElementById('meta').textContent = `${_models.length} model(s) · Default: ${data.default_model_id || '-'}`;
+      renderAllCards(_models);
+      return _models;
+    }
+
+    function startPolling() {
+      if (_pollTimer) return;
+      _pollTimer = setInterval(async () => {
+        const res = await fetch('/api/models');
+        const data = await res.json();
+        _models = data.models || [];
+        const anyLoading = _models.some(m => m.status === 'loading');
+        _models.forEach(updateCardInPlace);
+        if (!anyLoading) {
+          clearInterval(_pollTimer);
+          _pollTimer = null;
+          renderAllCards(_models); // full re-render to update buttons
+        }
+      }, 900);
+    }
+
+    async function loadModels() {
+      const models = await refreshAndRender();
+      if (models.some(m => m.status === 'loading')) startPolling();
     }
 
     loadModels().catch(err => {

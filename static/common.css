@@ -315,3 +315,11 @@ body {
 }
 
 .hidden { display: none !important; }
+
+.btn-danger {
+  color: var(--error-text);
+}
+.btn-danger:hover {
+  background: var(--error-bg);
+  border-color: var(--error-text);
+}

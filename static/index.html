@@ -104,10 +104,15 @@
         </button>
       </div>
     </div>
-    <button class="btn btn-primary submit-btn" id="btn" onclick="doClassify()">
-      <i data-lucide="sparkles" style="width:18px;height:18px;"></i>
-      تصنيف التذكرة
+    <button class="btn btn-primary submit-btn" id="btn" onclick="doClassify()" disabled>
+      <div class="spinner"></div>
+      جاري تحميل النموذج...
     </button>
+  </div>
+
+  <div id="model-status" style="margin-top:1rem;display:none;">
+    <div id="model-status-text" style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:0.35rem;direction:ltr;"></div>
+    <div class="progress-bar"><div class="progress-fill" id="model-progress-fill"></div></div>
   </div>
 
   <div id="error-msg" class="hidden"></div>
@@ -254,7 +259,16 @@ async function doClassify() {
     }
 
     const data = await res.json();
-    ["l1", "l2", "l3"].forEach(lvl => renderLevel(lvl, data[lvl]));
+    const activeTasks = data.tasks || [];
+    ["l1", "l2", "l3"].forEach(lvl => {
+      const card = document.querySelector(`.result-card.${lvl}`);
+      if (activeTasks.includes(lvl) && data[lvl]) {
+        if (card) card.style.display = '';
+        renderLevel(lvl, data[lvl]);
+      } else {
+        if (card) card.style.display = 'none';
+      }
+    });
     document.getElementById("lat").innerHTML = '<i data-lucide="timer" style="width:12px;height:12px;vertical-align:-2px;"></i> ' + data.latency_ms + ' ms';
     lucide.createIcons();
 
@@ -278,6 +292,50 @@ function showError(msg) {
 
 document.getElementById("title").addEventListener("keydown", e => { if (e.key === "Enter") doClassify(); });
 
+let _modelLoadTimer = null;
+
+function setModelReady(ready) {
+  const btn = document.getElementById('btn');
+  btn.disabled = !ready;
+  if (ready) {
+    btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> تصنيف التذكرة';
+    lucide.createIcons();
+    document.getElementById('model-status').style.display = 'none';
+  }
+}
+
+async function pollModelUntilReady(modelId) {
+  if (_modelLoadTimer) clearInterval(_modelLoadTimer);
+  const statusEl = document.getElementById('model-status');
+  const textEl = document.getElementById('model-status-text');
+  const fillEl = document.getElementById('model-progress-fill');
+  statusEl.style.display = 'block';
+
+  async function check() {
+    const res = await fetch(`/api/models/${encodeURIComponent(modelId)}/status`);
+    const s = await res.json();
+    const progress = Number(s.progress || 0);
+    fillEl.style.width = `${progress}%`;
+    textEl.textContent = `${modelId}: ${s.message || s.status} (${progress}%)`;
+    if (s.status === 'ready' || s.loaded) {
+      clearInterval(_modelLoadTimer);
+      setModelReady(true);
+    } else if (s.status === 'error') {
+      clearInterval(_modelLoadTimer);
+      textEl.textContent = `فشل تحميل النموذج: ${s.error || 'unknown error'}`;
+      const btn = document.getElementById('btn');
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> تصنيف التذكرة';
+      lucide.createIcons();
+    }
+  }
+
+  await check();
+  _modelLoadTimer = setInterval(async () => {
+    try { await check(); } catch (_) {}
+  }, 800);
+}
+
 async function loadModelInfo() {
   try {
     const res = await fetch('/api/models');
@@ -288,8 +346,20 @@ async function loadModelInfo() {
     if (defaultId) {
       nameEl.textContent = defaultId;
       badge.style.display = 'inline-flex';
+      const model = (data.models || []).find(m => m.id === defaultId);
+      if (model && (model.status === 'ready' || model.loaded)) {
+        setModelReady(true);
+      } else if (defaultId) {
+        // Trigger preload and show progress
+        await fetch(`/api/models/${encodeURIComponent(defaultId)}/preload`, { method: 'POST' });
+        await pollModelUntilReady(defaultId);
+      }
+    } else {
+      setModelReady(true); // no default model configured, let the API handle it
     }
-  } catch (_) {}
+  } catch (_) {
+    setModelReady(true); // fail open
+  }
 }
 loadModelInfo();
 

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Model — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .model-meta { color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem; direction: ltr; text-align: left; }
+    .samples { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .sample {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .sample:hover { background: var(--surface); border-color: var(--text-muted); }
+    .submit-btn { width: 100%; padding: 0.75rem; margin-top: 0.5rem; }
+    .error-box {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--error-bg);
+      color: var(--error-text);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      display: none;
+    }
+    .latency { color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem; direction: ltr; text-align: left; }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .task-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .task-card h3 { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; direction: ltr; text-align: left; }
+    .task-label { font-size: 0.9375rem; font-weight: 600; direction: ltr; text-align: left; }
+    .task-conf { font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem; direction: ltr; text-align: left; }
+    .task-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 0.5rem; }
+    .task-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+    .alts { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); }
+    .alt-row { display: flex; justify-content: space-between; font-size: 0.8125rem; margin-top: 0.5rem; direction: ltr; text-align: left; }
+    .alt-bar { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 0.25rem; }
+    .alt-fill { height: 100%; background: var(--text-muted); border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <div class="page-wide" style="padding-top: 2rem;">
+    <header class="header">
+      <div class="header-brand">
+        <h1 id="title">Model Page</h1>
+        <p id="subtitle">Loading profile...</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn nav-link" href="/models">
+          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+          Catalog
+        </a>
+        <a class="btn nav-link" href="/compare">Compare</a>
+        <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
+          <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
+          <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="status-box warn" id="statusBox">
+      <div id="statusText">Preparing model...</div>
+      <div class="progress-bar"><div class="progress-fill" id="loadProgress"></div></div>
+    </div>
+
+    <section class="card">
+      <div class="model-meta" id="meta"></div>
+      <div class="samples" id="samples"></div>
+      <div class="form-group">
+        <label class="form-label" for="title_ar">عنوان التذكرة</label>
+        <input id="title_ar" type="text" class="form-input" placeholder="مثال: الـ VPN مش شغال">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="description_ar">وصف المشكلة</label>
+        <textarea id="description_ar" class="form-textarea" placeholder="اكتب التفاصيل هنا"></textarea>
+      </div>
+      <button class="btn btn-primary submit-btn" id="btn" disabled>تحميل النموذج...</button>
+      <div class="error-box" id="error"></div>
+    </section>
+
+    <div class="latency" id="latency"></div>
+    <section class="results-grid" id="results"></section>
+  </div>
+
+  <script>
+    (function() {
+      const root = document.documentElement;
+      const saved = localStorage.getItem('theme') || 'light';
+      root.setAttribute('data-theme', saved);
+    })();
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
+      document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
+      lucide.createIcons();
+    });
+
+    lucide.createIcons();
+
+    const modelId = decodeURIComponent(location.pathname.split('/').pop() || '');
+    const titleEl = document.getElementById('title');
+    const subtitleEl = document.getElementById('subtitle');
+    const metaEl = document.getElementById('meta');
+    const btn = document.getElementById('btn');
+    const errEl = document.getElementById('error');
+    const resultsEl = document.getElementById('results');
+    const latencyEl = document.getElementById('latency');
+    const statusBox = document.getElementById('statusBox');
+    const statusText = document.getElementById('statusText');
+    const loadProgress = document.getElementById('loadProgress');
+    const samplesEl = document.getElementById('samples');
+
+    const sampleTickets = [
+      { title: 'الـ VPN مش شغال', description: 'اليوزر مش قادر يدخل على الشبكة الداخلية من البيت.' },
+      { title: 'نسيت باسورد الإيميل', description: 'محتاج reset لحساب Outlook بشكل عاجل.' },
+      { title: 'الطابعة في الدور الثالث واقفة', description: 'بتظهر رسالة paper jam ومش بتطبع أي مستند.' },
+      { title: 'الجهاز بطيء جدا بعد آخر تحديث', description: 'البرامج بتفتح ببطء والجهاز بيهنج بشكل متكرر.' }
+    ];
+
+    let modelReady = false;
+    let statusTimer = null;
+
+    function showError(msg) {
+      errEl.style.display = 'block';
+      errEl.textContent = msg;
+    }
+
+    function clearError() {
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+    }
+
+    function setReady(ready) {
+      modelReady = ready;
+      btn.disabled = !ready;
+      btn.innerHTML = ready ? '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> تصنيف التذكرة بهذا النموذج' : 'تحميل النموذج...';
+      lucide.createIcons();
+    }
+
+    function renderSamples() {
+      samplesEl.innerHTML = sampleTickets
+        .map((item, i) => `<button class="sample" type="button" data-index="${i}">${item.title}</button>`)
+        .join('');
+      samplesEl.addEventListener('click', (e) => {
+        const chip = e.target.closest('.sample');
+        if (!chip) return;
+        const idx = Number(chip.dataset.index);
+        const sample = sampleTickets[idx];
+        if (!sample) return;
+        document.getElementById('title_ar').value = sample.title;
+        document.getElementById('description_ar').value = sample.description;
+      });
+    }
+
+    async function loadProfile() {
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      const model = (data.models || []).find(m => m.id === modelId);
+      if (!model) {
+        titleEl.textContent = 'Unknown Model';
+        subtitleEl.textContent = modelId;
+        metaEl.textContent = 'This model id does not exist.';
+        statusBox.className = 'status-box error';
+        statusText.textContent = 'Model not found';
+        return false;
+      }
+      titleEl.textContent = model.name;
+      subtitleEl.textContent = `model_id: ${model.id}`;
+      metaEl.textContent = model.path;
+      return true;
+    }
+
+    function renderTask(taskName, payload) {
+      const top3 = payload.top3 || [];
+      const conf = Number(payload.confidence || 0);
+      return `
+        <article class="task-card">
+          <h3>${taskName}</h3>
+          <div class="task-label">${payload.label}</div>
+          <div class="task-conf">${(conf * 100).toFixed(2)}%</div>
+          <div class="task-bar"><div class="task-fill" style="width:${(conf * 100).toFixed(2)}%"></div></div>
+          <div class="alts">
+            ${top3.map(x => `
+              <div>
+                <div class="alt-row"><span>${x.label}</span><span style="color:var(--text-muted)">${(x.prob * 100).toFixed(1)}%</span></div>
+                <div class="alt-bar"><div class="alt-fill" style="width:${(x.prob * 100).toFixed(2)}%"></div></div>
+              </div>
+            `).join('')}
+          </div>
+        </article>
+      `;
+    }
+
+    async function pollStatusUntilReady() {
+      if (statusTimer) clearInterval(statusTimer);
+
+      async function check() {
+        const res = await fetch(`/api/models/${encodeURIComponent(modelId)}/status`);
+        const s = await res.json();
+        const progress = Number(s.progress || 0);
+        loadProgress.style.width = `${progress}%`;
+        statusText.textContent = `${s.message || s.status} (${progress}%)`;
+
+        if (s.status === 'ready' || s.loaded) {
+          statusBox.className = 'status-box ok';
+          statusText.textContent = 'Model ready for inference';
+          loadProgress.style.width = '100%';
+          setReady(true);
+          clearInterval(statusTimer);
+        } else if (s.status === 'error') {
+          statusBox.className = 'status-box error';
+          statusText.textContent = s.error || 'Model loading failed';
+          setReady(false);
+          clearInterval(statusTimer);
+        } else {
+          statusBox.className = 'status-box warn';
+          setReady(false);
+        }
+      }
+
+      await check();
+      statusTimer = setInterval(async () => {
+        try {
+          await check();
+        } catch (err) {
+          statusBox.className = 'status-box error';
+          statusText.textContent = `Status check failed: ${err.message}`;
+          setReady(false);
+          clearInterval(statusTimer);
+        }
+      }, 700);
+    }
+
+    async function startPreload() {
+      await fetch(`/api/models/${encodeURIComponent(modelId)}/preload`, { method: 'POST' });
+      await pollStatusUntilReady();
+    }
+
+    async function classify() {
+      clearError();
+      resultsEl.innerHTML = '';
+      latencyEl.textContent = '';
+
+      const titleAr = document.getElementById('title_ar').value.trim();
+      const descriptionAr = document.getElementById('description_ar').value.trim();
+      if (!titleAr) {
+        showError('عنوان التذكرة مطلوب');
+        return;
+      }
+      if (!modelReady) {
+        showError('النموذج قيد التحميل. يرجى الانتظار.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> جاري التصنيف...';
+
+      try {
+        const res = await fetch(`/api/classify?model_id=${encodeURIComponent(modelId)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title_ar: titleAr, description_ar: descriptionAr })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        const tasks = data.tasks || [];
+        latencyEl.innerHTML = `<i data-lucide="timer" style="width:14px;height:14px;vertical-align:-2px;"></i> ${data.latency_ms} ms`;
+        lucide.createIcons();
+        resultsEl.innerHTML = tasks.map(t => renderTask(t, data[t])).join('');
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> تصنيف التذكرة بهذا النموذج';
+        lucide.createIcons();
+      }
+    }
+
+    btn.addEventListener('click', classify);
+    document.getElementById('title_ar').addEventListener('keydown', e => {
+      if (e.key === 'Enter') classify();
+    });
+
+    (async () => {
+      renderSamples();
+      const ok = await loadProfile();
+      if (!ok) return;
+      await startPreload();
+    })().catch(err => showError(err.message));
+
+    document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
+    document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+  </script>
+</body>
+</html>

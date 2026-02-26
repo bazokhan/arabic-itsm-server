@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(py:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell:*)",
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(echo Copying model checkpoints...:*)"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+# Models — too large for git (each encoder is ~621 MB)
+# Copy from arabic-itsm-classification/models/ or load via HuggingFace.
+models/
+!models/.gitkeep
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

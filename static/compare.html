@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compare Models — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .compare-meta { color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem; direction: ltr; text-align: left; }
+    .samples { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .sample {
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .sample:hover { background: var(--surface); border-color: var(--text-muted); }
+    .submit-btn { width: 100%; padding: 0.75rem; margin-top: 0.5rem; }
+    .error-box {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--error-bg);
+      color: var(--error-text);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      display: none;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .model-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .model-card:hover { border-color: var(--text-muted); box-shadow: var(--shadow-md); }
+    .model-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .model-id { color: var(--text-muted); font-size: 0.75rem; margin-bottom: 1rem; direction: ltr; text-align: left; }
+    .task { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); }
+    .task-name { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; direction: ltr; text-align: left; margin-bottom: 0.25rem; }
+    .task-label { font-weight: 600; font-size: 0.9375rem; direction: ltr; text-align: left; }
+    .task-conf { font-size: 0.75rem; color: var(--text-muted); direction: ltr; text-align: left; margin-top: 0.2rem; }
+    .task-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 0.35rem; }
+    .task-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+  </style>
+</head>
+<body>
+  <div class="page-wide" style="padding-top: 2rem;">
+    <header class="header">
+      <div class="header-brand">
+        <h1>Compare Models</h1>
+        <p>Run one ticket across all configured models.</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn nav-link" href="/models">
+          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+          Catalog
+        </a>
+        <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
+          <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
+          <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="compare-meta" id="meta"></div>
+      <div id="models-list" class="compare-meta" style="margin-bottom:1rem;"></div>
+      <div class="samples" id="samples"></div>
+      <div class="form-group">
+        <label class="form-label" for="title_ar">عنوان التذكرة</label>
+        <input id="title_ar" type="text" class="form-input" placeholder="مثال: الـ VPN مش شغال">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="description_ar">وصف المشكلة</label>
+        <textarea id="description_ar" class="form-textarea" placeholder="اكتب التفاصيل هنا"></textarea>
+      </div>
+      <button class="btn btn-primary submit-btn" id="btn">
+        <i data-lucide="git-compare" style="width:18px;height:18px;"></i>
+        تصنيف بكل النماذج
+      </button>
+      <div class="error-box" id="error"></div>
+    </section>
+
+    <section class="results-grid" id="results"></section>
+  </div>
+
+  <script>
+    (function() {
+      const root = document.documentElement;
+      const saved = localStorage.getItem('theme') || 'light';
+      root.setAttribute('data-theme', saved);
+    })();
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
+      document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
+      lucide.createIcons();
+    });
+
+    lucide.createIcons();
+
+    const samplesEl = document.getElementById('samples');
+    const resultsEl = document.getElementById('results');
+    const errEl = document.getElementById('error');
+    const btn = document.getElementById('btn');
+    const metaEl = document.getElementById('meta');
+
+    const sampleTickets = [
+      { title: 'الـ VPN مش شغال', description: 'اليوزر مش قادر يدخل على الشبكة الداخلية من البيت.' },
+      { title: 'نسيت باسورد الإيميل', description: 'محتاج reset لحساب Outlook بشكل عاجل.' },
+      { title: 'الطابعة في الدور الثالث واقفة', description: 'بتظهر رسالة paper jam ومش بتطبع أي مستند.' },
+      { title: 'الجهاز بطيء جدا بعد آخر تحديث', description: 'البرامج بتفتح ببطء والجهاز بيهنج بشكل متكرر.' }
+    ];
+
+    function showError(msg) {
+      errEl.style.display = 'block';
+      errEl.textContent = msg;
+    }
+
+    function clearError() {
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+    }
+
+    function renderSamples() {
+      samplesEl.innerHTML = sampleTickets
+        .map((item, i) => `<button class="sample" type="button" data-index="${i}">${item.title}</button>`)
+        .join('');
+      samplesEl.addEventListener('click', (e) => {
+        const chip = e.target.closest('.sample');
+        if (!chip) return;
+        const idx = Number(chip.dataset.index);
+        const sample = sampleTickets[idx];
+        if (!sample) return;
+        document.getElementById('title_ar').value = sample.title;
+        document.getElementById('description_ar').value = sample.description;
+      });
+    }
+
+    function renderTask(taskName, payload) {
+      const conf = Number(payload.confidence || 0);
+      return `
+        <div class="task">
+          <div class="task-name">${taskName}</div>
+          <div class="task-label">${payload.label}</div>
+          <div class="task-conf">${(conf * 100).toFixed(2)}%</div>
+          <div class="task-bar"><div class="task-fill" style="width:${(conf * 100).toFixed(2)}%"></div></div>
+        </div>
+      `;
+    }
+
+    function renderModel(result) {
+      const tasks = result.tasks || [];
+      return `
+        <article class="model-card">
+          <h3>${result.model_id}</h3>
+          <div class="model-id"><i data-lucide="timer" style="width:12px;height:12px;vertical-align:-2px;"></i> ${result.latency_ms} ms</div>
+          ${tasks.map(t => renderTask(t, result[t])).join('')}
+        </article>
+      `;
+    }
+
+    async function loadMeta() {
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      const models = data.models || [];
+      const count = models.length;
+      metaEl.textContent = `${count} model(s) configured`;
+      const listEl = document.getElementById('models-list');
+      if (count > 0) {
+        const ids = models.map(m => m.id).join(', ');
+        listEl.innerHTML = `<strong>Runs across:</strong> ${ids}`;
+        listEl.style.display = 'block';
+      } else {
+        listEl.style.display = 'none';
+      }
+    }
+
+    async function classifyAll() {
+      clearError();
+      resultsEl.innerHTML = '';
+      const titleAr = document.getElementById('title_ar').value.trim();
+      const descriptionAr = document.getElementById('description_ar').value.trim();
+      if (!titleAr) {
+        showError('عنوان التذكرة مطلوب');
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> جاري التصنيف...';
+
+      try {
+        const res = await fetch('/api/classify/all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title_ar: titleAr, description_ar: descriptionAr })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+        const items = data.results || [];
+        resultsEl.innerHTML = items.map(renderModel).join('');
+        lucide.createIcons();
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="git-compare" style="width:18px;height:18px;"></i> تصنيف بكل النماذج';
+        lucide.createIcons();
+      }
+    }
+
+    btn.addEventListener('click', classifyAll);
+    document.getElementById('title_ar').addEventListener('keydown', e => {
+      if (e.key === 'Enter') classifyAll();
+    });
+
+    renderSamples();
+    loadMeta().catch(err => showError(err.message));
+
+    document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
+    document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+  </script>
+</body>
+</html>

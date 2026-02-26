@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مصنّف تذاكر الدعم الفني العربي — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .hero { margin-bottom: 2rem; }
+    .hero h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
+    .hero p { color: var(--text-muted); font-size: 0.9375rem; }
+    .hero-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .submit-btn { width: 100%; padding: 0.75rem 1.25rem; font-size: 0.9375rem; margin-top: 0.5rem; }
+    .ex-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.5rem; display: block; }
+    #error-msg { background: var(--error-bg); color: var(--error-text); border-radius: var(--radius-sm); padding: 0.75rem 1rem; font-size: 0.875rem; margin-top: 1rem; }
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .results-header h2 { font-size: 1rem; font-weight: 600; }
+    .res-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 768px) { .res-grid { grid-template-columns: 1fr; } }
+    .result-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; background: var(--surface); }
+    .result-card.l1 { border-right: 3px solid #2563eb; }
+    .result-card.l2 { border-right: 3px solid #7c3aed; }
+    .result-card.l3 { border-right: 3px solid #059669; }
+    .result-lvl { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .result-en { font-size: 1.0625rem; font-weight: 600; direction: ltr; text-align: left; }
+    .result-ar { font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 0.75rem; }
+    .conf-row { display: flex; align-items: center; gap: 0.5rem; direction: ltr; margin-bottom: 0.75rem; }
+    .conf-track { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .conf-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+    .conf-pct { font-size: 0.8125rem; font-weight: 600; min-width: 2.5rem; text-align: right; }
+    .alt-lbl { font-size: 0.6875rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; display: block; }
+    .alt-row { display: flex; justify-content: space-between; font-size: 0.8125rem; padding: 0.2rem 0; direction: ltr; }
+    .alt-row.first { font-weight: 600; }
+    .footer { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.8125rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<header class="header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--surface);">
+  <div class="header-brand">
+    <h1>مصنّف تذاكر الدعم الفني العربي</h1>
+    <p>Arabic ITSM Ticket Classifier · Cairo University 2026</p>
+  </div>
+  <div class="header-actions">
+    <span class="badge">MarBERTv2</span>
+    <span class="badge">Egyptian Arabic</span>
+    <span class="badge">89% F1</span>
+    <a class="btn nav-link" href="/models">
+      <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+      Catalog
+    </a>
+    <a class="btn nav-link" href="/compare">Compare</a>
+    <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
+      <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
+      <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+    </button>
+  </div>
+</header>
+
+<main class="page">
+  <div class="hero">
+    <h1>صنّف تذكرة الدعم</h1>
+    <p>أدخل عنوان التذكرة ووصف المشكلة لتصنيفها تلقائياً</p>
+    <div class="hero-badges">
+      <a id="model-badge" href="/models" class="badge" style="display:none;text-decoration:none;color:inherit;" title="النموذج الافتراضي. اضغط للانتقال إلى الكتالوج">
+        <i data-lucide="cpu" style="width:12px;height:12px;vertical-align:-2px;"></i>
+        <span id="model-name">—</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label" for="title">عنوان التذكرة</label>
+      <input type="text" id="title" class="form-input" placeholder="مثال: مش قادر أفتح الحساب">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="desc">وصف المشكلة</label>
+      <textarea id="desc" class="form-textarea" placeholder="اكتب تفاصيل المشكلة هنا..."></textarea>
+    </div>
+    <div class="form-group">
+      <span class="ex-label">أمثلة سريعة — اضغط لتحميل:</span>
+      <div class="chips">
+        <button class="chip" onclick="loadEx(0)" title="Access › Account › Account Locked">
+          <i data-lucide="lock" style="width:14px;height:14px;"></i>
+          مشكلة وصول
+        </button>
+        <button class="chip" onclick="loadEx(1)" title="Network › VPN › Connection Failure">
+          <i data-lucide="globe" style="width:14px;height:14px;"></i>
+          VPN
+        </button>
+        <button class="chip" onclick="loadEx(2)" title="Hardware › Laptop/Desktop › Performance">
+          <i data-lucide="monitor" style="width:14px;height:14px;"></i>
+          جهاز بطيء
+        </button>
+        <button class="chip" onclick="loadEx(3)" title="Software › Email/Calendar › Outlook Issue">
+          <i data-lucide="mail" style="width:14px;height:14px;"></i>
+          أوتلوك
+        </button>
+        <button class="chip" onclick="loadEx(4)" title="Security › Malware/Phishing › Phishing Email">
+          <i data-lucide="shield" style="width:14px;height:14px;"></i>
+          تصيد احتيالي
+        </button>
+      </div>
+    </div>
+    <button class="btn btn-primary submit-btn" id="btn" onclick="doClassify()">
+      <i data-lucide="sparkles" style="width:18px;height:18px;"></i>
+      تصنيف التذكرة
+    </button>
+  </div>
+
+  <div id="error-msg" class="hidden"></div>
+
+  <div id="results" class="hidden" style="margin-top: 2rem;">
+    <div class="results-header">
+      <h2>نتيجة التصنيف</h2>
+      <span class="badge" id="lat"></span>
+    </div>
+    <div class="res-grid">
+      <div class="result-card l1">
+        <div class="result-lvl">التصنيف الرئيسي · L1</div>
+        <div class="result-en" id="l1-en"></div>
+        <div class="result-ar" id="l1-ar"></div>
+        <div class="conf-row">
+          <div class="conf-track"><div class="conf-fill" id="l1-fill"></div></div>
+          <span class="conf-pct" id="l1-pct"></span>
+        </div>
+        <span class="alt-lbl">بدائل</span>
+        <div id="l1-alts"></div>
+      </div>
+      <div class="result-card l2">
+        <div class="result-lvl">التصنيف الفرعي · L2</div>
+        <div class="result-en" id="l2-en"></div>
+        <div class="result-ar" id="l2-ar"></div>
+        <div class="conf-row">
+          <div class="conf-track"><div class="conf-fill" id="l2-fill"></div></div>
+          <span class="conf-pct" id="l2-pct"></span>
+        </div>
+        <span class="alt-lbl">بدائل</span>
+        <div id="l2-alts"></div>
+      </div>
+      <div class="result-card l3">
+        <div class="result-lvl">نوع المشكلة · L3</div>
+        <div class="result-en" id="l3-en"></div>
+        <div class="result-ar" id="l3-ar"></div>
+        <div class="conf-row">
+          <div class="conf-track"><div class="conf-fill" id="l3-fill"></div></div>
+          <span class="conf-pct" id="l3-pct"></span>
+        </div>
+        <span class="alt-lbl">بدائل</span>
+        <div id="l3-alts"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <p>جامعة القاهرة · كلية الحاسبات والذكاء الاصطناعي · ماجستير الحوسبة السحابية · 2026</p>
+  <p style="direction:ltr;margin-top:0.25rem;">Cairo University · Cloud Computing · Supervisor: Dr. Eman E. Sanad</p>
+</footer>
+
+<script>
+(function() {
+  const root = document.documentElement;
+  const saved = localStorage.getItem('theme') || 'light';
+  root.setAttribute('data-theme', saved);
+})();
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const root = document.documentElement;
+  const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
+  document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
+  lucide.createIcons();
+});
+
+lucide.createIcons();
+
+const EXAMPLES = [
+  { title: "مش قادر أفتح الحساب", desc: "بحاول أتسجل دخول من الصبح والباسورد بيقولي غلط. الاكاونت اتقفل بعد محاولات كتير. محتاج تعمل reset عشان أقدر أكمل شغلي." },
+  { title: "الـ VPN مش شغال من البيت", desc: "بحاول أتصل بالـ VPN عشان أوصل لسيستمات الشغل بس بيديني error connection failed. الإنترنت عندي شغال تمام والمشكلة بدأت من امبارح." },
+  { title: "اللاب توب بطيء جداً", desc: "اللاب توب بقى بطيء جداً من الأسبوع اللي فات. بياخد وقت طويل يفتح أي برنامج والفان بيلف بجد. مش قادر أشتغل بيه بشكل طبيعي." },
+  { title: "الأوتلوك مش بيفتح", desc: "الأوتلوك بيقفل لوحده من امبارح. بيفتح ثوانٍ وبعدين بيطلع error وبيقفل تاني. مش قادر أشوف الميلات المهمة ولا أرد على حاجة." },
+  { title: "ايميل مشبوه وصلني", desc: "وصلني ايميل بيقولي اكاونتي هيتقفل وعايزني أدخل باسورد وبياناتي على لينك غريب. اللينك مش من الشركة. خايف اكون اتهاكت." }
+];
+
+const AR = {
+  Access: "الوصول", Hardware: "الأجهزة", Network: "الشبكة", Security: "الأمن", Service: "الخدمة", Software: "البرامج",
+  Account: "الحساب", "Business App": "تطبيق الأعمال", "Email/Calendar": "البريد / التقويم", Incident: "حادثة",
+  "Internet/LAN": "الإنترنت / الشبكة", "Laptop/Desktop": "الكمبيوتر", "MFA/SSO": "المصادقة الثنائية",
+  "Malware/Phishing": "البرامج الضارة / التصيد", "Office Apps": "تطبيقات المكتب", Peripherals: "الملحقات",
+  Permissions: "الصلاحيات", "Policy/Compliance": "السياسات", "Printer/Scanner": "الطابعة / الماسح",
+  Request: "طلب خدمة", VPN: "شبكة VPN", WiFi: "واي فاي"
+};
+
+function confColor(p) {
+  if (p >= .80) return "#16a34a";
+  if (p >= .60) return "#2563eb";
+  if (p >= .40) return "#d97706";
+  return "#dc2626";
+}
+
+function loadEx(i) {
+  document.getElementById("title").value = EXAMPLES[i].title;
+  document.getElementById("desc").value = EXAMPLES[i].desc;
+  document.getElementById("results").classList.add("hidden");
+  document.getElementById("error-msg").classList.add("hidden");
+}
+
+function renderLevel(lvl, data) {
+  const pct = Math.round(data.confidence * 100);
+  const color = confColor(data.confidence);
+
+  document.getElementById(`${lvl}-en`).textContent = data.label;
+  document.getElementById(`${lvl}-ar`).textContent = AR[data.label] || "";
+  document.getElementById(`${lvl}-pct`).textContent = `${pct}%`;
+  document.getElementById(`${lvl}-pct`).style.color = color;
+
+  const fill = document.getElementById(`${lvl}-fill`);
+  fill.style.width = "0%";
+  fill.style.background = color;
+  requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = `${pct}%`; }));
+
+  document.getElementById(`${lvl}-alts`).innerHTML = data.top3
+    .map((a, i) => `<div class="alt-row${i === 0 ? " first" : ""}"><span>${a.label}</span><span style="color:var(--text-muted)">${Math.round(a.prob * 100)}%</span></div>`)
+    .join("");
+}
+
+async function doClassify() {
+  const title = document.getElementById("title").value.trim();
+  const desc = document.getElementById("desc").value.trim();
+
+  if (!title) { showError("من فضلك اكتب عنوان التذكرة"); return; }
+
+  document.getElementById("error-msg").classList.add("hidden");
+
+  const btn = document.getElementById("btn");
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> جاري التصنيف...';
+
+  try {
+    const res = await fetch("/api/classify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title_ar: title, description_ar: desc })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    ["l1", "l2", "l3"].forEach(lvl => renderLevel(lvl, data[lvl]));
+    document.getElementById("lat").innerHTML = '<i data-lucide="timer" style="width:12px;height:12px;vertical-align:-2px;"></i> ' + data.latency_ms + ' ms';
+    lucide.createIcons();
+
+    const resultsEl = document.getElementById("results");
+    resultsEl.classList.remove("hidden");
+    resultsEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px;"></i> تصنيف التذكرة';
+    lucide.createIcons();
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById("error-msg");
+  el.textContent = `خطأ: ${msg}`;
+  el.classList.remove("hidden");
+}
+
+document.getElementById("title").addEventListener("keydown", e => { if (e.key === "Enter") doClassify(); });
+
+async function loadModelInfo() {
+  try {
+    const res = await fetch('/api/models');
+    const data = await res.json();
+    const defaultId = data.default_model_id || '';
+    const badge = document.getElementById('model-badge');
+    const nameEl = document.getElementById('model-name');
+    if (defaultId) {
+      nameEl.textContent = defaultId;
+      badge.style.display = 'inline-flex';
+    }
+  } catch (_) {}
+}
+loadModelInfo();
+
+document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
+document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+</script>
+
+</body>
+</html>

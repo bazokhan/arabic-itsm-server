@@ -1,0 +1,18 @@
+# Arabic ITSM Server — Python dependencies
+# Python 3.10+
+#
+# PyTorch must be installed separately with the correct CUDA index URL:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+# Or CPU-only:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#
+# Then install the rest:
+#   pip install -r requirements.txt
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+transformers>=4.38.0
+safetensors>=0.4.2
+huggingface-hub>=0.21.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9

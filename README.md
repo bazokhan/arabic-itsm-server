@@ -34,6 +34,8 @@ For academic traceability and reproducibility:
 - Project abstract: `https://github.com/bazokhan/arabic-itsm-classification/blob/master/docs/abstract.pdf`
 - Dataset methodology: `https://github.com/bazokhan/arabic-itsm-dataset`
 - Inference validity notes in this repo: [docs/academic_inference_notes.md](/D:/AI/arabic-itsm-server/docs/academic_inference_notes.md)
+- Cloud demo deployment guide: [docs/cloud_demo_guide.md](/D:/AI/arabic-itsm-server/docs/cloud_demo_guide.md)
+- Coolify VPS Docker deployment guide: [docs/coolify_deployment_guide.md](/D:/AI/arabic-itsm-server/docs/coolify_deployment_guide.md)
 
 `docs/academic_inference_notes.md` includes:
 - tokenizer consistency fix (2026-02-26),

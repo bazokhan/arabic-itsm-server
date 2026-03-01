@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Model Catalog — Arabic ITSM</title>
+  <title>كتالوج النماذج — Arabic ITSM</title>
   <link rel="stylesheet" href="/static/common.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
-    .meta { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
     .model-card {
       background: var(--surface);
@@ -30,27 +29,45 @@
       background: var(--surface);
       border: 1px dashed var(--border);
       border-radius: var(--radius);
-      padding: 2rem;
+      padding: 2.5rem;
       text-align: center;
       color: var(--text-muted);
       font-size: 0.9375rem;
+      line-height: 1.6;
     }
-    .nav-link { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .task-pill {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-right: 0.2rem;
+    }
+    .meta-bar { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
   </style>
 </head>
 <body>
   <div class="page-wide" style="padding-top: 2rem;">
     <header class="header">
       <div class="header-brand">
-        <h1>Model Catalog</h1>
-        <p><strong>Classifier</strong> uses the default model. <strong>Compare</strong> runs across all models. Set <code>DEFAULT_MODEL_ID</code> in .env to change the default.</p>
+        <h1 data-i18n="page_title">كتالوج النماذج</h1>
+        <p data-i18n="page_sub" style="color:var(--text-muted);font-size:0.8125rem;">اختر نموذجاً لتصنيف تذاكر الدعم</p>
       </div>
       <div class="header-actions">
-        <a class="btn nav-link" href="/classify">
-          <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
-          Classifier
+        <a class="btn nav-link" href="/dashboard">
+          <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_dashboard">لوحة البيانات</span>
         </a>
-        <a class="btn nav-link" href="/compare">Compare</a>
+        <a class="btn nav-link" href="/monitoring">
+          <i data-lucide="activity" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_monitoring">المراقبة</span>
+        </a>
+        <button class="btn-lang" id="langBtn" type="button">EN</button>
         <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
           <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
           <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
@@ -58,16 +75,88 @@
       </div>
     </header>
 
-    <p class="meta" id="meta">Loading models...</p>
+    <!-- Intro banner -->
+    <div class="intro-banner" id="introBanner">
+      <strong data-i18n="intro_title">ما هو هذا النظام؟</strong>
+      <span data-i18n="intro_body"> — يقوم هذا النظام بتصنيف تذاكر دعم تقنية المعلومات المكتوبة بالعربية تلقائياً باستخدام نماذج ذكاء اصطناعي مدربة على بيانات ITSM. اختر نموذجاً من القائمة أدناه ثم اضغط "فتح" لتجربته.</span>
+    </div>
+
+    <div class="meta-bar">
+      <span id="meta" data-i18n="loading_models">جاري تحميل النماذج...</span>
+      <a class="btn" href="/admin/export" style="font-size:0.8125rem;">
+        <i data-lucide="download" style="width:14px;height:14px;"></i>
+        <span data-i18n="btn_export">تصدير البيانات</span>
+      </a>
+    </div>
+
     <div class="grid" id="cards"></div>
   </div>
 
   <script>
+    // ── i18n ───────────────────────────────────────────────────────────────────
+    const T = {
+      ar: {
+        page_title: 'كتالوج النماذج', page_sub: 'اختر نموذجاً لتصنيف تذاكر الدعم',
+        nav_dashboard: 'لوحة البيانات', nav_monitoring: 'المراقبة',
+        intro_title: 'ما هو هذا النظام؟',
+        intro_body: ' — يقوم هذا النظام بتصنيف تذاكر دعم تقنية المعلومات المكتوبة بالعربية تلقائياً باستخدام نماذج ذكاء اصطناعي مدربة على بيانات ITSM. اختر نموذجاً من القائمة أدناه ثم اضغط "فتح" لتجربته.',
+        loading_models: 'جاري تحميل النماذج...',
+        btn_export: 'تصدير البيانات',
+        status_ready: 'جاهز', status_loading: 'يتحمل', status_error: 'خطأ', status_cold: 'بارد',
+        btn_open: 'فتح', btn_preload: 'تحميل مسبق', btn_unload: 'إلغاء التحميل',
+        tip_model_id: 'المعرف الفريد للنموذج المستخدم في واجهة برمجة التطبيقات',
+        tip_tasks: 'مهام التصنيف التي يدعمها هذا النموذج',
+        tip_cold: 'النموذج غير محمل في الذاكرة — سيتم تحميله تلقائياً عند فتحه',
+        tip_ready: 'النموذج محمل في الذاكرة وجاهز للاستخدام الفوري',
+        no_models: 'لم يتم اكتشاف أي نموذج. تأكد من ضبط MODEL_DIRS في ملف .env وأن المجلدات تحتوي على ملف heads.pt',
+        default_label: 'الافتراضي',
+        tasks_label: 'المهام:',
+      },
+      en: {
+        page_title: 'Model Catalog', page_sub: 'Choose a model to classify support tickets',
+        nav_dashboard: 'Dashboard', nav_monitoring: 'Monitoring',
+        intro_title: 'What is this system?',
+        intro_body: ' — This system automatically classifies Arabic IT support tickets using AI models trained on ITSM data. Choose a model from the list below and click "Open" to try it.',
+        loading_models: 'Loading models...',
+        btn_export: 'Export Data',
+        status_ready: 'Ready', status_loading: 'Loading', status_error: 'Error', status_cold: 'Cold',
+        btn_open: 'Open', btn_preload: 'Pre-load', btn_unload: 'Unload',
+        tip_model_id: 'The unique identifier used in the API to reference this model',
+        tip_tasks: 'Classification tasks supported by this model',
+        tip_cold: 'Model is not in memory — it will load automatically when you open it',
+        tip_ready: 'Model is loaded in memory and ready for immediate use',
+        no_models: 'No checkpoints discovered. Set MODEL_DIRS in .env and ensure folders contain heads.pt',
+        default_label: 'Default',
+        tasks_label: 'Tasks:',
+      }
+    };
+
+    let LANG = localStorage.getItem('lang') || 'ar';
+    function applyLang() {
+      document.documentElement.setAttribute('data-lang', LANG);
+      document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = LANG;
+      document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'عر';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (T[LANG][key] !== undefined) el.textContent = T[LANG][key];
+      });
+    }
+    function t(key) { return T[LANG][key] || key; }
+
     (function() {
-      const root = document.documentElement;
       const saved = localStorage.getItem('theme') || 'light';
-      root.setAttribute('data-theme', saved);
+      document.documentElement.setAttribute('data-theme', saved);
+      applyLang();
     })();
+
+    document.getElementById('langBtn').addEventListener('click', () => {
+      LANG = LANG === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('lang', LANG);
+      applyLang();
+      lucide.createIcons();
+      renderAllCards(_models);
+    });
 
     document.getElementById('themeBtn').addEventListener('click', () => {
       const root = document.documentElement;
@@ -82,44 +171,67 @@
     lucide.createIcons();
 
     let _models = [];
+    let _defaultId = '';
     let _pollTimer = null;
 
     function warmBadge(m) {
       if (m.status === 'ready' || m.loaded) {
-        return '<span class="badge badge-success"><i data-lucide="check-circle" style="width:11px;height:11px;vertical-align:-1px;"></i> Ready</span>';
+        return `<span class="badge badge-success"><i data-lucide="check-circle" style="width:11px;height:11px;vertical-align:-1px;"></i> ${t('status_ready')}</span>`;
       }
       if (m.status === 'loading') {
-        return `<span class="badge badge-warning"><div class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:-3px;margin-right:3px;"></div>${m.progress || 0}%</span>`;
+        return `<span class="badge badge-warning"><div class="spinner" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:-3px;margin-inline-end:3px;"></div>${m.progress || 0}%</span>`;
       }
       if (m.status === 'error') {
-        return '<span class="badge badge-error">Error</span>';
+        return `<span class="badge badge-error">${t('status_error')}</span>`;
       }
-      return '<span class="badge" style="background:var(--info-bg);color:var(--info-text);border:none;">Cold</span>';
+      return `<span class="badge" style="background:var(--info-bg);color:var(--info-text);border:none;">${t('status_cold')}</span>`;
     }
 
     function renderCard(m) {
       const isReady = m.status === 'ready' || m.loaded;
       const isLoading = m.status === 'loading';
       const progress = m.progress || 0;
+      const isDefault = m.id === _defaultId;
       const msg = isLoading && m.message ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.15rem;">${m.message}</div>` : '';
-      const tasks = (m.tasks && m.tasks.length) ? `<div style="font-size:0.72rem;color:var(--text-muted);">Tasks: ${m.tasks.join(', ')}</div>` : '';
+
+      const taskPills = (m.tasks && m.tasks.length)
+        ? `<div style="margin-top:0.25rem;">
+            <span style="font-size:0.7rem;color:var(--text-muted);">${t('tasks_label')}</span>
+            ${m.tasks.map(task => `<span class="task-pill tooltip" title="${t('tip_tasks')}">${task}</span>`).join('')}
+           </div>`
+        : '';
+
+      const statusTip = isReady ? t('tip_ready') : t('tip_cold');
+
       return `
         <article class="model-card" data-id="${m.id}">
           <div class="model-card-head">
-            <span class="model-title">${m.name}</span>
-            <span class="badge-wrap">${warmBadge(m)}</span>
+            <div>
+              <span class="model-title">${m.name}</span>
+              ${isDefault ? `<span class="badge badge-success" style="margin-inline-start:0.4rem;font-size:0.65rem;">${t('default_label')}</span>` : ''}
+            </div>
+            <span class="badge-wrap tooltip" title="${statusTip}">${warmBadge(m)}<span class="tooltip-text">${statusTip}</span></span>
           </div>
-          <div class="model-id">${m.id}</div>
-          <div class="model-path">${m.path}</div>
-          ${tasks}
+          <div class="model-id tooltip">
+            <i data-lucide="tag" style="width:12px;height:12px;flex-shrink:0;"></i>
+            ${m.id}
+            <span class="tooltip-text">${t('tip_model_id')}</span>
+          </div>
+          <div class="model-path" title="${m.path}">${m.path}</div>
+          ${taskPills}
           ${msg}
           <div class="progress-bar" style="margin-top:0.5rem;"><div class="progress-fill" style="width:${progress}%"></div></div>
           <div style="display:flex;gap:0.5rem;margin-top:auto;padding-top:0.5rem;">
             <a class="btn btn-primary" href="/models/${encodeURIComponent(m.id)}" style="flex:1;justify-content:center;">
-              Open
+              <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+              ${t('btn_open')}
             </a>
-            ${isReady ? `<button class="btn btn-danger" data-unload="${m.id}" title="Unload from memory (frees RAM)"><i data-lucide="power" style="width:15px;height:15px;"></i></button>` : ''}
-            ${(!isReady && !isLoading) ? `<button class="btn" data-preload="${m.id}" title="Pre-load into memory"><i data-lucide="zap" style="width:15px;height:15px;"></i></button>` : ''}
+            ${isReady
+              ? `<button class="btn btn-danger" data-unload="${m.id}" title="${t('btn_unload')}"><i data-lucide="power" style="width:15px;height:15px;"></i></button>`
+              : ''}
+            ${(!isReady && !isLoading)
+              ? `<button class="btn" data-preload="${m.id}" title="${t('btn_preload')}"><i data-lucide="zap" style="width:15px;height:15px;"></i></button>`
+              : ''}
           </div>
         </article>
       `;
@@ -147,7 +259,7 @@
     function renderAllCards(models) {
       const cards = document.getElementById('cards');
       if (!models.length) {
-        cards.innerHTML = '<div class="empty-card">No checkpoints discovered. Set MODEL_DIRS in .env.</div>';
+        cards.innerHTML = `<div class="empty-card">${t('no_models')}</div>`;
       } else {
         cards.innerHTML = models.map(renderCard).join('');
       }
@@ -168,9 +280,10 @@
       const res = await fetch('/api/models');
       const data = await res.json();
       _models = data.models || [];
-      document.getElementById('meta').textContent = `${_models.length} model(s) · Default: ${data.default_model_id || '-'}`;
+      _defaultId = data.default_model_id || '';
+      const metaEl = document.getElementById('meta');
+      metaEl.textContent = `${_models.length} ${LANG === 'ar' ? 'نموذج' : 'model(s)'}${_defaultId ? (LANG === 'ar' ? ` · الافتراضي: ${_defaultId}` : ` · Default: ${_defaultId}`) : ''}`;
       renderAllCards(_models);
-      return _models;
     }
 
     function startPolling() {
@@ -184,18 +297,18 @@
         if (!anyLoading) {
           clearInterval(_pollTimer);
           _pollTimer = null;
-          renderAllCards(_models); // full re-render to update buttons
+          renderAllCards(_models);
         }
       }, 900);
     }
 
     async function loadModels() {
-      const models = await refreshAndRender();
-      if (models.some(m => m.status === 'loading')) startPolling();
+      await refreshAndRender();
+      if (_models.some(m => m.status === 'loading')) startPolling();
     }
 
     loadModels().catch(err => {
-      document.getElementById('meta').textContent = `Failed to load: ${err.message}`;
+      document.getElementById('meta').textContent = `Error: ${err.message}`;
     });
 
     document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');

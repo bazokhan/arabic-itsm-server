@@ -16,3 +16,4 @@ safetensors>=0.4.2
 huggingface-hub>=0.21.0
 python-dotenv>=1.0.0
 python-multipart>=0.0.9
+psutil>=5.9.0

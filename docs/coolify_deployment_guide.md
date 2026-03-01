@@ -5,13 +5,14 @@ This guide deploys this project on Coolify using the repository Dockerfile so de
 It includes:
 - FastAPI startup command (so the app does not restart-loop)
 - automatic Hugging Face model sync on container start
-- persistent model/cache storage
+- persistent model/cache storage (models + SQLite database)
 - default model set to L3
+- SQLite database for classification history, feedback, monitoring, and visitor logs
 
 ## 1) What This Docker Deployment Does
 
 On every container start:
-1. creates model/cache directories under `/data`
+1. creates model/cache directories under `/data` AND the DB directory `/data/db/`
 2. downloads (or reuses) model snapshots from Hugging Face:
    - `albaz2000/marbert-arabic-itsm-l3-categories`
    - `albaz2000/marbert-arabic-itsm-multitask`
@@ -71,6 +72,7 @@ HF_HOME=/data/hf_cache
 DEFAULT_MODEL_ID=marbert-arabic-itsm-l3-categories
 HF_MODEL_REPOS=albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/marbert-arabic-itsm-multitask
 FORCE_MODEL_SYNC=0
+DB_PATH=/data/db/itsm.db
 ```
 
 Optional:
@@ -88,8 +90,9 @@ Add a persistent volume in Coolify:
 This keeps:
 - downloaded model files (`/data/models`)
 - Hugging Face cache (`/data/hf_cache`)
+- SQLite database (`/data/db/itsm.db`) — classification history, feedback, monitoring
 
-Without persistent storage, each restart re-downloads models.
+Without persistent storage, each restart re-downloads models AND loses the database.
 
 ## 8) Deploy
 
@@ -119,10 +122,12 @@ GET /api/models
 Expected:
 - both model profiles listed
 
-3. UI:
-- `/models`
-- `/models/marbert-arabic-itsm-l3-categories`
-- `/compare`
+3. UI pages:
+- `/models` — model catalog
+- `/models/marbert-arabic-itsm-l3-categories` — classify tickets
+- `/dashboard` — classification history, stats, charts
+- `/monitoring` — CPU/memory/visitor stats (auto-refreshes every 30s)
+- `/admin/export` — download CSV or SQL backup of the entire database
 
 ## 10) Common Issues and Fixes
 
@@ -171,7 +176,28 @@ If model repo contents change:
 Before go-live:
 1. Dockerfile mode enabled
 2. internal port is `8000`
-3. env vars set (especially `MODEL_DIRS`, `DEFAULT_MODEL_ID`, `HF_MODEL_REPOS`)
-4. persistent volume mounted at `/data`
+3. env vars set (especially `MODEL_DIRS`, `DEFAULT_MODEL_ID`, `HF_MODEL_REPOS`, `DB_PATH`)
+4. persistent volume mounted at `/data` (covers models, hf_cache, AND the sqlite db)
 5. `/api/health` shows profiles
 6. inference tested from `/models` page
+7. `/dashboard` shows classification history after first classify
+8. `/admin/export` → test CSV and SQL downloads
+
+## 13) Data Backup Strategy
+
+The SQLite database at `DB_PATH` (`/data/db/itsm.db`) stores all classifications and feedback.
+
+**Option A — Download via UI**: go to `/admin/export` and click "Download SQL Backup"
+
+**Option B — Download via API**:
+```bash
+curl -o itsm_backup.sql https://your-domain/api/export/sql
+curl -o itsm_backup.zip https://your-domain/api/export/csv
+```
+
+**Option C — Direct copy** (from VPS):
+```bash
+docker cp <container_id>:/data/db/itsm.db ./itsm_backup.db
+```
+
+Recommend: schedule Option B weekly via a cron job or Coolify scheduled task.

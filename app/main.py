@@ -1,36 +1,77 @@
 """
 FastAPI server for multi-model Arabic ITSM ticket classification.
 
-Key routes:
-  - GET  /api/models
+API routes:
+  - GET  /api/models, /api/models/{id}/status, preload, unload
   - POST /api/classify?model_id=<id>
   - POST /api/classify/all
+  - GET  /api/classifications?limit=&offset=
+  - GET  /api/classifications/{id}
+  - POST /api/feedback
+  - GET  /api/stats
+  - GET  /api/monitoring
+  - GET  /api/export/csv  (ZIP with CSV)
+  - GET  /api/export/sql  (SQL dump)
+  - GET  /api/health
+
+Page routes:
+  - GET  /           -> redirect to /models
   - GET  /models
-  - GET  /compare
   - GET  /models/{model_id}
+  - GET  /dashboard
+  - GET  /monitoring
+  - GET  /admin/export
 """
 from __future__ import annotations
 
+import csv
 import gc
+import io
 import os
 import threading
 import time
+import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import psutil
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from app.database import (
+    count_classifications,
+    export_classifications_csv_rows,
+    export_sql_dump,
+    get_monitoring_history,
+    get_stats,
+    get_visitor_stats,
+    init_db,
+    insert_classification,
+    insert_feedback,
+    insert_monitoring_snapshot,
+    insert_visitor,
+    list_classifications,
+    get_classification,
+    prune_monitoring_log,
+)
+
 load_dotenv()
 
+# ── Model state ────────────────────────────────────────────────────────────────
 _profiles: dict[str, dict] = {}
 _models: dict[str, object] = {}
 _load_state: dict[str, dict] = {}
 _load_events: dict[str, threading.Event] = {}
 _state_lock = threading.RLock()
+
+# ── Server metrics ─────────────────────────────────────────────────────────────
+_active_requests: int = 0
+_active_requests_lock = threading.Lock()
+_server_start_time: float = time.time()
 
 
 def _discover_profiles() -> dict[str, dict]:
@@ -199,15 +240,23 @@ def _start_background_load(model_id: str):
         try:
             _ensure_model_loaded(model_id, wait=True)
         except Exception:
-            # Error details are captured in _load_state by _load_model_sync.
             return
 
     t = threading.Thread(target=_runner, daemon=True)
     t.start()
 
 
+# ── Lifespan ───────────────────────────────────────────────────────────────────
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+
+    # 1. Initialize database
+    init_db()
+    print("[ok] SQLite database initialized")
+
+    # 2. Discover model profiles
     global _profiles
     _profiles = _discover_profiles()
     if _profiles:
@@ -215,23 +264,84 @@ async def lifespan(app: FastAPI):
     else:
         print("[warn] No model profiles discovered")
         print("       Put checkpoints under models/ or set MODEL_DIRS")
-    yield
 
+    # 3. Start background monitoring task (every 60s)
+    async def _monitoring_loop():
+        while True:
+            await asyncio.sleep(60)
+            try:
+                proc = psutil.Process()
+                cpu = psutil.cpu_percent(interval=None)
+                mem = proc.memory_info().rss / (1024 * 1024)
+                with _active_requests_lock:
+                    active = _active_requests
+                insert_monitoring_snapshot(cpu, mem, active)
+                prune_monitoring_log(keep_hours=48)
+            except Exception as exc:
+                print(f"[warn] Monitoring snapshot failed: {exc}")
+
+    task = asyncio.create_task(_monitoring_loop())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+# ── App ────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="Arabic ITSM Classifier",
     description="Multi-model Arabic ITSM ticket classification API + web UI.",
-    version="2.0.0",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+# ── Visitor middleware ─────────────────────────────────────────────────────────
+
+class VisitorMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        global _active_requests
+        # Skip static asset requests to reduce noise
+        if not request.url.path.startswith("/static"):
+            ip = request.client.host if request.client else "unknown"
+            user_agent = request.headers.get("user-agent", "")
+            try:
+                insert_visitor(ip, request.url.path, user_agent)
+            except Exception:
+                pass
+        with _active_requests_lock:
+            _active_requests += 1
+        try:
+            response = await call_next(request)
+        finally:
+            with _active_requests_lock:
+                _active_requests -= 1
+        return response
+
+
+app.add_middleware(VisitorMiddleware)
+
+
+# ── Pydantic models ────────────────────────────────────────────────────────────
+
 class TicketIn(BaseModel):
     title_ar: str
     description_ar: str = ""
 
+
+class FeedbackIn(BaseModel):
+    classification_id: int
+    thumbs: str
+    comment: str | None = None
+    email: str | None = None
+
+
+# ── Model management routes ────────────────────────────────────────────────────
 
 @app.get("/api/models", summary="List available model profiles")
 async def list_models():
@@ -339,8 +449,12 @@ async def unload_model(model_id: str):
     return {"model_id": model_id, "status": "idle", "message": "Model unloaded from memory"}
 
 
+# ── Inference routes ───────────────────────────────────────────────────────────
+
 @app.post("/api/classify", summary="Classify an Arabic ticket with selected model")
 async def classify(body: TicketIn, model_id: str | None = Query(default=None)):
+    api_start = time.perf_counter()
+
     if not body.title_ar.strip():
         raise HTTPException(status_code=400, detail="title_ar must not be empty")
 
@@ -352,6 +466,25 @@ async def classify(body: TicketIn, model_id: str | None = Query(default=None)):
     result = clf.predict(body.title_ar, body.description_ar)
     result["model_id"] = target_model
     result["tasks"] = clf.tasks
+
+    api_time_ms = round((time.perf_counter() - api_start) * 1000, 1)
+    result["api_time_ms"] = api_time_ms
+
+    # Persist to DB (non-blocking — DB failure must never kill a classify)
+    try:
+        cid = insert_classification(
+            ticket_title=body.title_ar,
+            ticket_text=body.description_ar,
+            model_id=target_model,
+            model_response=result,
+            api_time_ms=api_time_ms,
+            inference_time_ms=float(result.get("latency_ms", 0)),
+        )
+        result["classification_id"] = cid
+    except Exception as exc:
+        print(f"[warn] DB insert failed: {exc}")
+        result["classification_id"] = None
+
     return result
 
 
@@ -363,14 +496,119 @@ async def classify_all(body: TicketIn):
         raise HTTPException(status_code=503, detail="No model profiles available")
 
     results = []
-    for model_id in _profiles:
-        clf = _get_model(model_id)
+    for mid in _profiles:
+        clf = _get_model(mid)
         result = clf.predict(body.title_ar, body.description_ar)
-        result["model_id"] = model_id
+        result["model_id"] = mid
         result["tasks"] = clf.tasks
         results.append(result)
     return {"count": len(results), "results": results}
 
+
+# ── Classification history routes ──────────────────────────────────────────────
+
+@app.get("/api/classifications", summary="Paginated classification history")
+async def api_list_classifications(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    rows = list_classifications(limit=limit, offset=offset)
+    total = count_classifications()
+    return {"total": total, "limit": limit, "offset": offset, "items": rows}
+
+
+@app.get("/api/classifications/{classification_id}", summary="Single classification record")
+async def api_get_classification(classification_id: int):
+    row = get_classification(classification_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Classification {classification_id} not found")
+    return row
+
+
+# ── Feedback route ─────────────────────────────────────────────────────────────
+
+@app.post("/api/feedback", summary="Submit thumbs up/down feedback")
+async def api_feedback(body: FeedbackIn):
+    if body.thumbs not in ("up", "down"):
+        raise HTTPException(status_code=400, detail="thumbs must be 'up' or 'down'")
+    try:
+        fid = insert_feedback(
+            classification_id=body.classification_id,
+            thumbs=body.thumbs,
+            comment=body.comment,
+            email=body.email,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"feedback_id": fid, "status": "ok"}
+
+
+# ── Stats route ────────────────────────────────────────────────────────────────
+
+@app.get("/api/stats", summary="Aggregated classification and feedback stats")
+async def api_stats():
+    return get_stats()
+
+
+# ── Monitoring route ───────────────────────────────────────────────────────────
+
+@app.get("/api/monitoring", summary="Current process stats + 24h history")
+async def api_monitoring():
+    proc = psutil.Process()
+    uptime_seconds = time.time() - _server_start_time
+    return {
+        "current": {
+            "cpu_pct": psutil.cpu_percent(interval=None),
+            "mem_mb": round(proc.memory_info().rss / (1024 * 1024), 1),
+            "uptime_seconds": round(uptime_seconds),
+            "active_requests": _active_requests,
+        },
+        "history_24h": get_monitoring_history(hours=24),
+        "visitor_stats": get_visitor_stats(),
+    }
+
+
+# ── Export routes ──────────────────────────────────────────────────────────────
+
+@app.get("/api/export/csv", summary="Download all classifications as CSV zip")
+async def api_export_csv():
+    rows = export_classifications_csv_rows()
+
+    buf = io.StringIO()
+    if rows:
+        writer = csv.DictWriter(buf, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    # UTF-8 BOM so Excel reads Arabic correctly
+    csv_content = ("\ufeff" + buf.getvalue()).encode("utf-8")
+
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("classifications.csv", csv_content)
+    zip_buf.seek(0)
+
+    return StreamingResponse(
+        zip_buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=itsm_classifications.zip"},
+    )
+
+
+@app.get("/api/export/sql", summary="Download full DB as SQL dump")
+async def api_export_sql():
+    dump = export_sql_dump()
+
+    def _iter():
+        yield dump.encode("utf-8")
+
+    return StreamingResponse(
+        _iter(),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=itsm_backup.sql"},
+    )
+
+
+# ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/api/health", summary="Health check")
 async def health():
@@ -382,14 +620,11 @@ async def health():
     }
 
 
+# ── Page routes ────────────────────────────────────────────────────────────────
+
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/models")
-
-
-@app.get("/classify", include_in_schema=False)
-async def classify_page():
-    return FileResponse("static/index.html")
 
 
 @app.get("/models", include_in_schema=False)
@@ -397,9 +632,19 @@ async def models_page():
     return FileResponse("static/models.html")
 
 
-@app.get("/compare", include_in_schema=False)
-async def compare_page():
-    return FileResponse("static/compare.html")
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard_page():
+    return FileResponse("static/dashboard.html")
+
+
+@app.get("/monitoring", include_in_schema=False)
+async def monitoring_page():
+    return FileResponse("static/monitoring.html")
+
+
+@app.get("/admin/export", include_in_schema=False)
+async def export_page():
+    return FileResponse("static/export.html")
 
 
 @app.get("/models/{model_id}", include_in_schema=False)

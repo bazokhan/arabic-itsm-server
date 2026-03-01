@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تصدير البيانات — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <div class="page" style="padding-top: 2rem;">
+    <header class="header">
+      <div class="header-brand">
+        <h1 data-i18n="page_title">تصدير البيانات ونسخ احتياطية</h1>
+        <p style="color:var(--text-muted);font-size:0.8125rem;" data-i18n="page_sub">حمّل قاعدة بيانات التصنيفات والتقييمات</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn nav-link" href="/dashboard">
+          <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_dashboard">لوحة البيانات</span>
+        </a>
+        <a class="btn nav-link" href="/models">
+          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_catalog">الكتالوج</span>
+        </a>
+        <button class="btn-lang" id="langBtn" type="button">EN</button>
+        <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
+          <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
+          <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats summary -->
+    <div class="intro-banner" style="margin-bottom:1.5rem;">
+      <span data-i18n="stats_label">إجمالي التصنيفات:</span>
+      <strong id="statCls">—</strong> &nbsp;|&nbsp;
+      <span data-i18n="stats_fb_label">التقييمات:</span>
+      <strong id="statFb">—</strong>
+    </div>
+
+    <!-- CSV export -->
+    <a class="export-btn" href="/api/export/csv" download>
+      <span class="export-icon">📊</span>
+      <div style="flex:1;">
+        <div data-i18n="csv_title">تصدير CSV (ملف مضغوط ZIP)</div>
+        <div class="export-desc" data-i18n="csv_desc">جميع التصنيفات والتقييمات في جدول Excel-متوافق — بترميز UTF-8 BOM للعربية</div>
+      </div>
+      <i data-lucide="download" style="width:20px;height:20px;flex-shrink:0;"></i>
+    </a>
+
+    <!-- SQL export -->
+    <a class="export-btn" href="/api/export/sql" download>
+      <span class="export-icon">🗄️</span>
+      <div style="flex:1;">
+        <div data-i18n="sql_title">تصدير SQL (نسخة احتياطية كاملة)</div>
+        <div class="export-desc" data-i18n="sql_desc">نسخة كاملة من قاعدة البيانات بصيغة SQL — يمكن استعادتها على أي خادم SQLite</div>
+      </div>
+      <i data-lucide="download" style="width:20px;height:20px;flex-shrink:0;"></i>
+    </a>
+
+    <!-- Info card -->
+    <div class="card" style="margin-top:1.5rem;">
+      <p style="font-weight:600;margin-bottom:0.75rem;" data-i18n="info_title">ماذا يحتوي كل ملف؟</p>
+
+      <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:500;" data-i18n="csv_what_title">📊 ملف CSV يحتوي على:</p>
+      <ul style="font-size:0.875rem;color:var(--text-muted);padding-right:1.25rem;line-height:1.8;margin-bottom:1rem;" data-i18n-list="csv_cols">
+        <li>معرف التصنيف وتاريخ الطلب</li>
+        <li>عنوان التذكرة ونصها</li>
+        <li>النموذج المستخدم</li>
+        <li>نتائج L1 / L2 / L3 مع نسبة الثقة</li>
+        <li>وقت API ووقت الاستدلال</li>
+        <li>تقييم المستخدم (إعجاب / عدم إعجاب، تعليق، بريد)</li>
+      </ul>
+
+      <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:500;" data-i18n="sql_what_title">🗄️ ملف SQL يحتوي على:</p>
+      <ul style="font-size:0.875rem;color:var(--text-muted);padding-right:1.25rem;line-height:1.8;" data-i18n-list="sql_cols">
+        <li>جميع الجداول (التصنيفات، التقييمات، سجل المراقبة، الزوار)</li>
+        <li>البيانات والفهارس والمخططات</li>
+        <li>صالح للاستعادة بـ: sqlite3 itsm_restored.db &lt; itsm_backup.sql</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // ── i18n ───────────────────────────────────────────────────────────────────
+    const T = {
+      ar: {
+        page_title: 'تصدير البيانات ونسخ احتياطية',
+        page_sub: 'حمّل قاعدة بيانات التصنيفات والتقييمات',
+        nav_dashboard: 'لوحة البيانات', nav_catalog: 'الكتالوج',
+        stats_label: 'إجمالي التصنيفات:', stats_fb_label: 'التقييمات:',
+        csv_title: 'تصدير CSV (ملف مضغوط ZIP)',
+        csv_desc: 'جميع التصنيفات والتقييمات في جدول Excel-متوافق — بترميز UTF-8 BOM للعربية',
+        sql_title: 'تصدير SQL (نسخة احتياطية كاملة)',
+        sql_desc: 'نسخة كاملة من قاعدة البيانات بصيغة SQL — يمكن استعادتها على أي خادم SQLite',
+        info_title: 'ماذا يحتوي كل ملف؟',
+        csv_what_title: '📊 ملف CSV يحتوي على:',
+        sql_what_title: '🗄️ ملف SQL يحتوي على:',
+      },
+      en: {
+        page_title: 'Export Data & Backups',
+        page_sub: 'Download the classifications and feedback database',
+        nav_dashboard: 'Dashboard', nav_catalog: 'Catalog',
+        stats_label: 'Total Classifications:', stats_fb_label: 'Feedback:',
+        csv_title: 'Export CSV (ZIP file)',
+        csv_desc: 'All classifications and feedback as an Excel-compatible table — UTF-8 BOM encoding for Arabic text',
+        sql_title: 'Export SQL (Full Backup)',
+        sql_desc: 'Full database dump in SQL format — can be restored on any SQLite server',
+        info_title: "What's in each file?",
+        csv_what_title: '📊 CSV file contains:',
+        sql_what_title: '🗄️ SQL file contains:',
+      }
+    };
+
+    let LANG = localStorage.getItem('lang') || 'ar';
+    function applyLang() {
+      document.documentElement.setAttribute('data-lang', LANG);
+      document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = LANG;
+      document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'عر';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (T[LANG][key] !== undefined) el.textContent = T[LANG][key];
+      });
+    }
+
+    (function() {
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+      applyLang();
+    })();
+
+    document.getElementById('langBtn').addEventListener('click', () => {
+      LANG = LANG === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('lang', LANG);
+      applyLang();
+      lucide.createIcons();
+    });
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
+      document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
+      lucide.createIcons();
+    });
+
+    lucide.createIcons();
+
+    // Load stats
+    fetch('/api/stats').then(r => r.json()).then(s => {
+      document.getElementById('statCls').textContent = (s.total_classifications || 0).toLocaleString();
+      document.getElementById('statFb').textContent = (s.total_feedback || 0).toLocaleString();
+    }).catch(() => {});
+
+    document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
+    document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 mkdir -p "${MODEL_DIRS:-/data/models}" "${HF_HOME:-/data/hf_cache}"
+mkdir -p "$(dirname "${DB_PATH:-/data/db/itsm.db}")"
 
 if [[ -n "${HF_TOKEN:-}" ]]; then
   export HUGGINGFACE_HUB_TOKEN="${HF_TOKEN}"

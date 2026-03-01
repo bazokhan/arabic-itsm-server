@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة البيانات — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .section-header { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 1.75rem 0 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .section-header:first-of-type { margin-top: 0; }
+    .cls-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    .rerun-link { font-size: 0.8125rem; }
+  </style>
+</head>
+<body>
+  <div class="page-wide" style="padding-top: 2rem;">
+    <header class="header">
+      <div class="header-brand">
+        <h1 data-i18n="page_title">لوحة البيانات</h1>
+        <p style="color:var(--text-muted);font-size:0.8125rem;" data-i18n="page_sub">إحصائيات وسجل التصنيفات</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn nav-link" href="/models">
+          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_catalog">الكتالوج</span>
+        </a>
+        <a class="btn nav-link" href="/monitoring">
+          <i data-lucide="activity" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_monitoring">المراقبة</span>
+        </a>
+        <button class="btn-lang" id="langBtn" type="button">EN</button>
+        <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
+          <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
+          <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats cards -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-value" id="statCls">—</div><div class="stat-label" data-i18n="stat_total_cls">إجمالي التصنيفات</div></div>
+      <div class="stat-card"><div class="stat-value" id="statFb">—</div><div class="stat-label" data-i18n="stat_total_fb">إجمالي التقييمات</div></div>
+      <div class="stat-card"><div class="stat-value" id="statThumbsUp">—</div><div class="stat-label" data-i18n="stat_thumbs_up">نسبة الإعجاب 👍</div></div>
+      <div class="stat-card"><div class="stat-value" id="statAvgInf">—</div><div class="stat-label" data-i18n="stat_avg_inf">متوسط وقت الاستدلال</div></div>
+    </div>
+
+    <!-- Per-day chart -->
+    <div class="section-header">
+      <i data-lucide="calendar" style="width:15px;height:15px;"></i>
+      <span data-i18n="section_per_day">التصنيفات خلال آخر 7 أيام</span>
+    </div>
+    <div class="card" style="padding:1.25rem;">
+      <div class="day-chart" id="dayChart"></div>
+      <div id="dayEmpty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_data">لا توجد بيانات بعد</div>
+    </div>
+
+    <!-- Per-model usage -->
+    <div class="section-header">
+      <i data-lucide="cpu" style="width:15px;height:15px;"></i>
+      <span data-i18n="section_by_model">استخدام النماذج</span>
+    </div>
+    <div class="card" style="padding:1.25rem;">
+      <div class="bar-chart" id="modelChart"></div>
+      <div id="modelEmpty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_data">لا توجد بيانات بعد</div>
+    </div>
+
+    <!-- L1 distribution -->
+    <div class="section-header">
+      <i data-lucide="tag" style="width:15px;height:15px;"></i>
+      <span data-i18n="section_by_l1">توزيع الفئات الرئيسية (L1)</span>
+    </div>
+    <div class="card" style="padding:1.25rem;">
+      <div class="bar-chart" id="l1Chart"></div>
+      <div id="l1Empty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_data">لا توجد بيانات بعد</div>
+    </div>
+
+    <!-- Recent classifications -->
+    <div class="section-header" style="justify-content: space-between;">
+      <span style="display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="clock" style="width:15px;height:15px;"></i>
+        <span data-i18n="section_recent">آخر التصنيفات</span>
+      </span>
+      <a class="btn" href="/admin/export" style="font-size:0.8125rem;padding:0.35rem 0.75rem;">
+        <i data-lucide="download" style="width:14px;height:14px;"></i>
+        <span data-i18n="btn_export">تصدير</span>
+      </a>
+    </div>
+    <div class="cls-table-wrap card" style="padding:0;">
+      <table class="cls-table">
+        <thead>
+          <tr>
+            <th data-i18n="col_time">الوقت</th>
+            <th data-i18n="col_title">العنوان</th>
+            <th data-i18n="col_model">النموذج</th>
+            <th data-i18n="col_l1">L1</th>
+            <th data-i18n="col_conf">الثقة</th>
+            <th data-i18n="col_api_ms">وقت API</th>
+            <th data-i18n="col_actions">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="clsBody"></tbody>
+      </table>
+      <div id="clsEmpty" class="hidden" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;" data-i18n="no_cls">لا توجد تصنيفات بعد — جرّب نموذجاً من <a href="/models">الكتالوج</a></div>
+    </div>
+
+    <!-- Feedback modal (same structure as model.html) -->
+    <div class="modal-overlay" id="feedbackModal" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <button class="modal-close" id="feedbackCloseBtn">✕</button>
+        <p class="modal-title" data-i18n="modal_title">هل كانت النتيجة مفيدة؟</p>
+        <p class="modal-sub" data-i18n="modal_sub">تقييمك يساعدنا في تحسين النموذج</p>
+        <div id="fbForm">
+          <div class="thumbs-row">
+            <button class="thumb-btn" id="thumbUp" type="button">👍</button>
+            <button class="thumb-btn" id="thumbDown" type="button">👎</button>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="fbComment"><span data-i18n="fb_comment">تعليق (اختياري)</span></label>
+            <textarea id="fbComment" class="form-textarea" style="min-height:70px;" maxlength="500" data-i18n-placeholder="fb_comment_ph" placeholder="ما الذي كان صحيحاً أو خاطئاً؟"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="fbEmail"><span data-i18n="fb_email">بريدك الإلكتروني (اختياري)</span></label>
+            <input id="fbEmail" type="email" class="form-input" data-i18n-placeholder="fb_email_ph" placeholder="للتواصل معك إذا احتجنا تفاصيل">
+          </div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+            <button class="btn btn-primary" id="fbSubmitBtn" style="flex:1;" data-i18n="fb_submit">إرسال</button>
+            <button class="btn" id="fbSkipBtn" data-i18n="fb_skip">تخطي</button>
+          </div>
+          <div class="error-box" id="fbError" style="margin-top:0.75rem;display:none;"></div>
+        </div>
+        <div id="fbThanks" class="hidden" style="text-align:center;padding:1rem 0;">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">🎉</div>
+          <p style="font-weight:600;" data-i18n="fb_thanks_title">شكراً على تقييمك!</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── i18n ───────────────────────────────────────────────────────────────────
+    const T = {
+      ar: {
+        page_title: 'لوحة البيانات', page_sub: 'إحصائيات وسجل التصنيفات',
+        nav_catalog: 'الكتالوج', nav_monitoring: 'المراقبة',
+        stat_total_cls: 'إجمالي التصنيفات', stat_total_fb: 'إجمالي التقييمات',
+        stat_thumbs_up: 'نسبة الإعجاب 👍', stat_avg_inf: 'متوسط وقت الاستدلال',
+        section_per_day: 'التصنيفات خلال آخر 7 أيام',
+        section_by_model: 'استخدام النماذج', section_by_l1: 'توزيع الفئات الرئيسية (L1)',
+        section_recent: 'آخر التصنيفات', btn_export: 'تصدير',
+        col_time: 'الوقت', col_title: 'العنوان', col_model: 'النموذج',
+        col_l1: 'الفئة الرئيسية', col_conf: 'الثقة', col_api_ms: 'وقت API', col_actions: 'إجراءات',
+        no_data: 'لا توجد بيانات بعد',
+        no_cls: 'لا توجد تصنيفات بعد — جرّب نموذجاً من الكتالوج',
+        btn_rerun: 'إعادة تشغيل ↻', btn_feedback: 'تقييم 💬',
+        modal_title: 'هل كانت النتيجة مفيدة؟', modal_sub: 'تقييمك يساعدنا في تحسين النموذج',
+        fb_comment: 'تعليق (اختياري)', fb_comment_ph: 'ما الذي كان صحيحاً أو خاطئاً؟',
+        fb_email: 'بريدك الإلكتروني (اختياري)', fb_email_ph: 'للتواصل معك إذا احتجنا تفاصيل',
+        fb_submit: 'إرسال', fb_skip: 'تخطي',
+        fb_thanks_title: 'شكراً!', fb_err_select: 'يرجى اختيار 👍 أو 👎',
+      },
+      en: {
+        page_title: 'Dashboard', page_sub: 'Stats and classification history',
+        nav_catalog: 'Catalog', nav_monitoring: 'Monitoring',
+        stat_total_cls: 'Total Classifications', stat_total_fb: 'Total Feedback',
+        stat_thumbs_up: 'Thumbs Up Rate 👍', stat_avg_inf: 'Avg Inference Time',
+        section_per_day: 'Classifications – Last 7 Days',
+        section_by_model: 'Model Usage', section_by_l1: 'L1 Category Distribution',
+        section_recent: 'Recent Classifications', btn_export: 'Export',
+        col_time: 'Time', col_title: 'Title', col_model: 'Model',
+        col_l1: 'L1 Category', col_conf: 'Confidence', col_api_ms: 'API Time', col_actions: 'Actions',
+        no_data: 'No data yet',
+        no_cls: 'No classifications yet — try a model from the Catalog',
+        btn_rerun: 'Rerun ↻', btn_feedback: 'Feedback 💬',
+        modal_title: 'Was the result helpful?', modal_sub: 'Your feedback helps us improve the model',
+        fb_comment: 'Comment (optional)', fb_comment_ph: 'What was correct or wrong in the classification?',
+        fb_email: 'Your email (optional)', fb_email_ph: 'So we can follow up if needed',
+        fb_submit: 'Submit', fb_skip: 'Skip',
+        fb_thanks_title: 'Thank you!', fb_err_select: 'Please select 👍 or 👎 first',
+      }
+    };
+
+    let LANG = localStorage.getItem('lang') || 'ar';
+    function applyLang() {
+      document.documentElement.setAttribute('data-lang', LANG);
+      document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = LANG;
+      document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'عر';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (T[LANG][key] !== undefined) el.textContent = T[LANG][key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (T[LANG][key]) el.placeholder = T[LANG][key];
+      });
+    }
+    function t(key) { return T[LANG][key] || key; }
+
+    (function() {
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+      applyLang();
+    })();
+
+    document.getElementById('langBtn').addEventListener('click', () => {
+      LANG = LANG === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('lang', LANG);
+      applyLang();
+      lucide.createIcons();
+    });
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
+      document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
+      lucide.createIcons();
+    });
+
+    lucide.createIcons();
+
+    // ── Stats ───────────────────────────────────────────────────────────────────
+    async function loadStats() {
+      const res = await fetch('/api/stats');
+      const s = await res.json();
+
+      document.getElementById('statCls').textContent = s.total_classifications.toLocaleString();
+      document.getElementById('statFb').textContent = s.total_feedback.toLocaleString();
+      document.getElementById('statThumbsUp').textContent = s.thumbs_up_pct != null ? `${s.thumbs_up_pct}%` : '—';
+      document.getElementById('statAvgInf').textContent = s.avg_inference_ms ? `${s.avg_inference_ms} ms` : '—';
+
+      // Per-day chart
+      renderDayChart(s.per_day_last_7 || []);
+
+      // Per-model bar chart
+      renderBarChart('modelChart', 'modelEmpty', (s.by_model || []).map(r => ({ label: r.model_id, count: r.count })));
+
+      // L1 bar chart
+      renderBarChart('l1Chart', 'l1Empty', (s.by_l1_label || []).map(r => ({ label: r.label, count: r.count })));
+    }
+
+    function renderBarChart(chartId, emptyId, items) {
+      const el = document.getElementById(chartId);
+      const emptyEl = document.getElementById(emptyId);
+      if (!items.length) {
+        el.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+      const max = Math.max(...items.map(i => i.count), 1);
+      el.innerHTML = items.map(item => `
+        <div class="bar-row">
+          <div class="bar-label" title="${item.label}">${item.label}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(item.count / max * 100)}%"></div></div>
+          <div class="bar-count">${item.count}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderDayChart(data) {
+      const el = document.getElementById('dayChart');
+      const emptyEl = document.getElementById('dayEmpty');
+      if (!data.length) {
+        el.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+      const max = Math.max(...data.map(d => d.count), 1);
+      // Fill in missing days for last 7
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        const found = data.find(x => x.date === key);
+        days.push({ date: key, count: found ? found.count : 0 });
+      }
+      el.innerHTML = days.map(day => {
+        const heightPct = max > 0 ? Math.round(day.count / max * 100) : 0;
+        const shortDate = day.date.slice(5); // MM-DD
+        return `
+          <div class="day-bar-wrap">
+            <div class="day-bar" style="height:${heightPct}%" title="${day.date}: ${day.count}"></div>
+            <div class="day-label">${shortDate}<br><strong>${day.count}</strong></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Classifications table ───────────────────────────────────────────────────
+    async function loadClassifications() {
+      const res = await fetch('/api/classifications?limit=20&offset=0');
+      const data = await res.json();
+      const items = data.items || [];
+      const tbody = document.getElementById('clsBody');
+      const emptyEl = document.getElementById('clsEmpty');
+
+      if (!items.length) {
+        tbody.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+
+      tbody.innerHTML = items.map(row => {
+        const resp = row.model_response || {};
+        const l1 = resp.l1 || {};
+        const conf = l1.confidence ? `${(l1.confidence * 100).toFixed(0)}%` : '—';
+        const timeStr = row.created_at ? row.created_at.replace('T', ' ').slice(0, 16) : '—';
+        const titleShort = (row.ticket_title || '').slice(0, 40) + ((row.ticket_title || '').length > 40 ? '…' : '');
+        const modelId = encodeURIComponent(row.model_id || '');
+        const titleEnc = encodeURIComponent(row.ticket_title || '');
+        const descEnc = encodeURIComponent(row.ticket_text || '');
+        const rerunUrl = `/models/${modelId}?prefill_title=${titleEnc}&prefill_desc=${descEnc}`;
+        return `
+          <tr>
+            <td style="white-space:nowrap;font-size:0.75rem;color:var(--text-muted);">${timeStr}</td>
+            <td class="title-cell" title="${row.ticket_title || ''}">${titleShort}</td>
+            <td style="font-family:monospace;font-size:0.75rem;">${row.model_id || '—'}</td>
+            <td>${l1.label || '—'}</td>
+            <td>${conf}</td>
+            <td style="font-size:0.75rem;color:var(--text-muted);">${row.api_time_ms ? row.api_time_ms + ' ms' : '—'}</td>
+            <td>
+              <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+                <a class="btn rerun-link" href="${rerunUrl}" title="${t('btn_rerun')}">↻</a>
+                <button class="btn" data-cls-id="${row.id}" onclick="openFbModal(${row.id})" title="${t('btn_feedback')}">💬</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ── Feedback modal ──────────────────────────────────────────────────────────
+    let selectedThumb = null;
+    let activeFbCls = null;
+
+    function openFbModal(clsId) {
+      activeFbCls = clsId;
+      selectedThumb = null;
+      document.getElementById('thumbUp').className = 'thumb-btn';
+      document.getElementById('thumbDown').className = 'thumb-btn';
+      document.getElementById('fbComment').value = '';
+      document.getElementById('fbEmail').value = '';
+      document.getElementById('fbError').style.display = 'none';
+      document.getElementById('fbForm').classList.remove('hidden');
+      document.getElementById('fbThanks').classList.add('hidden');
+      document.getElementById('feedbackModal').classList.add('open');
+    }
+
+    function closeFbModal() {
+      document.getElementById('feedbackModal').classList.remove('open');
+    }
+
+    document.getElementById('feedbackCloseBtn').addEventListener('click', closeFbModal);
+    document.getElementById('fbSkipBtn').addEventListener('click', closeFbModal);
+    document.getElementById('feedbackModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('feedbackModal')) closeFbModal();
+    });
+
+    document.getElementById('thumbUp').addEventListener('click', () => {
+      selectedThumb = 'up';
+      document.getElementById('thumbUp').className = 'thumb-btn selected-up';
+      document.getElementById('thumbDown').className = 'thumb-btn';
+    });
+    document.getElementById('thumbDown').addEventListener('click', () => {
+      selectedThumb = 'down';
+      document.getElementById('thumbDown').className = 'thumb-btn selected-down';
+      document.getElementById('thumbUp').className = 'thumb-btn';
+    });
+
+    document.getElementById('fbSubmitBtn').addEventListener('click', async () => {
+      const fbErr = document.getElementById('fbError');
+      if (!selectedThumb) { fbErr.style.display='block'; fbErr.textContent=t('fb_err_select'); return; }
+      fbErr.style.display = 'none';
+      try {
+        const res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            classification_id: activeFbCls,
+            thumbs: selectedThumb,
+            comment: document.getElementById('fbComment').value.trim() || null,
+            email: document.getElementById('fbEmail').value.trim() || null,
+          })
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
+        document.getElementById('fbForm').classList.add('hidden');
+        document.getElementById('fbThanks').classList.remove('hidden');
+        setTimeout(() => closeFbModal(), 2000);
+      } catch(err) {
+        fbErr.style.display='block'; fbErr.textContent=err.message;
+      }
+    });
+
+    // ── Init ────────────────────────────────────────────────────────────────────
+    Promise.all([loadStats(), loadClassifications()]).catch(err => {
+      console.error('Dashboard load error:', err);
+    });
+
+    document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
+    document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+  </script>
+</body>
+</html>

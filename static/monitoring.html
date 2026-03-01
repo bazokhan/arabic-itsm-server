@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المراقبة — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .section-header { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 1.75rem 0 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .cpu-history { display: flex; align-items: flex-end; gap: 2px; height: 60px; overflow-x: auto; padding-bottom: 0.25rem; }
+    .cpu-bar { min-width: 6px; border-radius: 3px 3px 0 0; background: var(--accent); flex-shrink: 0; }
+    .cpu-bar.warn { background: var(--warning-text); }
+    .cpu-bar.danger { background: var(--error-text); }
+    .vis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.875rem; }
+    .vis-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center; }
+    .vis-value { font-size: 1.625rem; font-weight: 700; }
+    .vis-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .last-update { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="page-wide" style="padding-top: 2rem;">
+    <header class="header">
+      <div class="header-brand">
+        <h1 data-i18n="page_title">مراقبة الخادم</h1>
+        <p style="color:var(--text-muted);font-size:0.8125rem;" data-i18n="page_sub">الأداء والزوار — يتحدث كل 30 ثانية</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn nav-link" href="/models">
+          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_catalog">الكتالوج</span>
+        </a>
+        <a class="btn nav-link" href="/dashboard">
+          <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_dashboard">لوحة البيانات</span>
+        </a>
+        <button class="btn-lang" id="langBtn" type="button">EN</button>
+        <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
+          <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
+          <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Alert banners (hidden by default) -->
+    <div class="alert-banner danger hidden" id="alertCPU" data-i18n="alert_cpu">⚠️ تحذير: استهلاك المعالج مرتفع (أكثر من 80%)</div>
+    <div class="alert-banner warn hidden" id="alertMem" data-i18n="alert_mem">⚠️ تحذير: استهلاك الذاكرة مرتفع (أكثر من 2 GB)</div>
+
+    <!-- Current stats gauges -->
+    <div class="section-header">
+      <i data-lucide="cpu" style="width:15px;height:15px;"></i>
+      <span data-i18n="section_current">الحالة الحالية</span>
+    </div>
+    <div class="gauge-grid">
+      <div class="gauge-card">
+        <div class="gauge-value" id="gaugeCPU">—%</div>
+        <div class="gauge-label" data-i18n="gauge_cpu">المعالج (CPU)</div>
+        <div class="gauge-bar"><div class="gauge-fill" id="fillCPU" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-value" id="gaugeMem">— MB</div>
+        <div class="gauge-label" data-i18n="gauge_mem">الذاكرة (RAM)</div>
+        <div class="gauge-bar"><div class="gauge-fill" id="fillMem" style="width:0%"></div></div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-value" id="gaugeUptime">—</div>
+        <div class="gauge-label" data-i18n="gauge_uptime">وقت التشغيل</div>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-value" id="gaugeReqs">—</div>
+        <div class="gauge-label" data-i18n="gauge_reqs">الطلبات النشطة</div>
+      </div>
+    </div>
+
+    <!-- CPU 24h history -->
+    <div class="section-header">
+      <i data-lucide="trending-up" style="width:15px;height:15px;"></i>
+      <span data-i18n="section_history">سجل المعالج (24 ساعة)</span>
+    </div>
+    <div class="card" style="padding:1.25rem;">
+      <div class="cpu-history" id="cpuHistory"></div>
+      <div id="historyEmpty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_history">لا توجد بيانات تاريخية بعد — تظهر بعد 60 ثانية</div>
+    </div>
+
+    <!-- Visitor stats -->
+    <div class="section-header">
+      <i data-lucide="users" style="width:15px;height:15px;"></i>
+      <span data-i18n="section_visitors">إحصائيات الزوار</span>
+    </div>
+    <div class="vis-grid">
+      <div class="vis-card"><div class="vis-value" id="visUniqueToday">—</div><div class="vis-label" data-i18n="vis_unique_today">زوار مميزون اليوم</div></div>
+      <div class="vis-card"><div class="vis-value" id="visTotalToday">—</div><div class="vis-label" data-i18n="vis_total_today">طلبات اليوم</div></div>
+      <div class="vis-card"><div class="vis-value" id="visUniqueAll">—</div><div class="vis-label" data-i18n="vis_unique_all">إجمالي الزوار المميزين</div></div>
+      <div class="vis-card"><div class="vis-value" id="visTotalAll">—</div><div class="vis-label" data-i18n="vis_total_all">إجمالي الطلبات</div></div>
+    </div>
+
+    <p class="last-update" id="lastUpdate"></p>
+  </div>
+
+  <script>
+    // ── i18n ───────────────────────────────────────────────────────────────────
+    const T = {
+      ar: {
+        page_title: 'مراقبة الخادم', page_sub: 'الأداء والزوار — يتحدث كل 30 ثانية',
+        nav_catalog: 'الكتالوج', nav_dashboard: 'لوحة البيانات',
+        alert_cpu: '⚠️ تحذير: استهلاك المعالج مرتفع (أكثر من 80%)',
+        alert_mem: '⚠️ تحذير: استهلاك الذاكرة مرتفع (أكثر من 2 GB)',
+        section_current: 'الحالة الحالية', section_history: 'سجل المعالج (24 ساعة)',
+        section_visitors: 'إحصائيات الزوار',
+        gauge_cpu: 'المعالج (CPU)', gauge_mem: 'الذاكرة (RAM)',
+        gauge_uptime: 'وقت التشغيل', gauge_reqs: 'الطلبات النشطة',
+        no_history: 'لا توجد بيانات تاريخية بعد — تظهر بعد 60 ثانية',
+        vis_unique_today: 'زوار مميزون اليوم', vis_total_today: 'طلبات اليوم',
+        vis_unique_all: 'إجمالي الزوار المميزين', vis_total_all: 'إجمالي الطلبات',
+        last_update: 'آخر تحديث:',
+      },
+      en: {
+        page_title: 'Server Monitoring', page_sub: 'Performance & visitors — updates every 30 seconds',
+        nav_catalog: 'Catalog', nav_dashboard: 'Dashboard',
+        alert_cpu: '⚠️ Warning: CPU usage is high (over 80%)',
+        alert_mem: '⚠️ Warning: Memory usage is high (over 2 GB)',
+        section_current: 'Current Status', section_history: 'CPU History (24h)',
+        section_visitors: 'Visitor Statistics',
+        gauge_cpu: 'CPU Usage', gauge_mem: 'Memory (RAM)',
+        gauge_uptime: 'Uptime', gauge_reqs: 'Active Requests',
+        no_history: 'No historical data yet — appears after 60 seconds',
+        vis_unique_today: 'Unique Visitors Today', vis_total_today: 'Requests Today',
+        vis_unique_all: 'Total Unique Visitors', vis_total_all: 'Total Requests',
+        last_update: 'Last update:',
+      }
+    };
+
+    let LANG = localStorage.getItem('lang') || 'ar';
+    function applyLang() {
+      document.documentElement.setAttribute('data-lang', LANG);
+      document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = LANG;
+      document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'عر';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (T[LANG][key] !== undefined) el.textContent = T[LANG][key];
+      });
+    }
+    function t(key) { return T[LANG][key] || key; }
+
+    (function() {
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+      applyLang();
+    })();
+
+    document.getElementById('langBtn').addEventListener('click', () => {
+      LANG = LANG === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('lang', LANG);
+      applyLang();
+      lucide.createIcons();
+    });
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
+      document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
+      lucide.createIcons();
+    });
+
+    lucide.createIcons();
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────
+    function formatUptime(seconds) {
+      const d = Math.floor(seconds / 86400);
+      const h = Math.floor((seconds % 86400) / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      if (d > 0) return `${d}d ${h}h`;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+
+    // ── Load & render ───────────────────────────────────────────────────────────
+    async function loadMonitoring() {
+      const res = await fetch('/api/monitoring');
+      const data = await res.json();
+      const cur = data.current || {};
+      const hist = data.history_24h || [];
+      const vis = data.visitor_stats || {};
+
+      // Gauges
+      const cpu = cur.cpu_pct || 0;
+      const mem = cur.mem_mb || 0;
+      document.getElementById('gaugeCPU').textContent = `${cpu.toFixed(0)}%`;
+      document.getElementById('gaugeMem').textContent = `${mem.toFixed(0)} MB`;
+      document.getElementById('gaugeUptime').textContent = formatUptime(cur.uptime_seconds || 0);
+      document.getElementById('gaugeReqs').textContent = cur.active_requests || 0;
+
+      // CPU gauge bar (capped at 100%)
+      const cpuFill = document.getElementById('fillCPU');
+      cpuFill.style.width = `${Math.min(cpu, 100)}%`;
+      cpuFill.className = 'gauge-fill' + (cpu > 80 ? ' danger' : cpu > 60 ? ' warn' : '');
+
+      // Mem gauge bar (assume 4096 MB max for bar)
+      const memPct = Math.min(mem / 4096 * 100, 100);
+      const memFill = document.getElementById('fillMem');
+      memFill.style.width = `${memPct}%`;
+      memFill.className = 'gauge-fill' + (mem > 2048 ? ' warn' : '');
+
+      // Alert banners
+      document.getElementById('alertCPU').classList.toggle('hidden', cpu <= 80);
+      document.getElementById('alertMem').classList.toggle('hidden', mem <= 2048);
+
+      // CPU history
+      const histEl = document.getElementById('cpuHistory');
+      const histEmpty = document.getElementById('historyEmpty');
+      if (!hist.length) {
+        histEl.innerHTML = '';
+        histEmpty.classList.remove('hidden');
+      } else {
+        histEmpty.classList.add('hidden');
+        const maxCPU = Math.max(...hist.map(h => h.cpu_pct), 1);
+        histEl.innerHTML = hist.map(h => {
+          const pct = Math.round(h.cpu_pct / 100 * 60); // height in px (max 60)
+          const cls = h.cpu_pct > 80 ? ' danger' : h.cpu_pct > 60 ? ' warn' : '';
+          return `<div class="cpu-bar${cls}" style="height:${Math.max(pct, 2)}px;" title="${h.timestamp}: ${h.cpu_pct}%"></div>`;
+        }).join('');
+      }
+
+      // Visitors
+      document.getElementById('visUniqueToday').textContent = (vis.unique_ips_today || 0).toLocaleString();
+      document.getElementById('visTotalToday').textContent = (vis.total_requests_today || 0).toLocaleString();
+      document.getElementById('visUniqueAll').textContent = (vis.unique_ips_total || 0).toLocaleString();
+      document.getElementById('visTotalAll').textContent = (vis.total_requests_total || 0).toLocaleString();
+
+      // Last update
+      const now = new Date().toLocaleTimeString();
+      document.getElementById('lastUpdate').textContent = `${t('last_update')} ${now}`;
+    }
+
+    loadMonitoring().catch(console.error);
+    setInterval(() => loadMonitoring().catch(console.error), 30000);
+
+    document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
+    document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+  </script>
+</body>
+</html>

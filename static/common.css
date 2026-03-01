@@ -323,3 +323,220 @@ body {
   background: var(--error-bg);
   border-color: var(--error-text);
 }
+
+/* ── Modal ──────────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.25rem;
+  border-radius: 4px;
+  line-height: 1;
+  font-size: 1.25rem;
+}
+[dir="rtl"] .modal-close { right: auto; left: 0.75rem; }
+.modal-close:hover { color: var(--text); background: var(--bg-elevated); }
+.modal-title { font-size: 1.0625rem; font-weight: 600; margin-bottom: 0.25rem; }
+.modal-sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+/* Thumbs buttons */
+.thumbs-row { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
+.thumb-btn {
+  flex: 1;
+  padding: 0.875rem;
+  font-size: 1.75rem;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  text-align: center;
+}
+.thumb-btn:hover { border-color: var(--text-muted); transform: scale(1.05); }
+.thumb-btn.selected-up { border-color: #16a34a; background: var(--success-bg); }
+.thumb-btn.selected-down { border-color: #b91c1c; background: var(--error-bg); }
+
+/* ── Tooltip ─────────────────────────────────────────────────────────────────── */
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: default;
+}
+.tooltip .tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: help;
+  flex-shrink: 0;
+}
+.tooltip .tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.18s;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  position: absolute;
+  z-index: 150;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 160px;
+  max-width: 240px;
+  white-space: normal;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}
+.tooltip:hover .tooltip-text,
+.tooltip:focus-within .tooltip-text { visibility: visible; opacity: 1; }
+
+/* ── Language toggle button ──────────────────────────────────────────────────── */
+.btn-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-lang:hover { background: var(--bg-elevated); color: var(--text); }
+
+/* ── Intro banner ─────────────────────────────────────────────────────────────── */
+.intro-banner {
+  background: var(--info-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--info-text);
+  line-height: 1.55;
+}
+.intro-banner strong { font-weight: 600; }
+
+/* ── Stats grid ───────────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1.75rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.125rem 1.25rem;
+  box-shadow: var(--shadow);
+}
+.stat-value { font-size: 1.625rem; font-weight: 700; letter-spacing: -0.03em; }
+.stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+/* ── Bar chart (pure CSS, horizontal) ────────────────────────────────────────── */
+.bar-chart { display: flex; flex-direction: column; gap: 0.5rem; }
+.bar-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8125rem; }
+.bar-label { min-width: 100px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); text-align: right; }
+[dir="rtl"] .bar-label { text-align: left; }
+.bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.4s ease; }
+.bar-count { min-width: 28px; text-align: left; color: var(--text-muted); font-size: 0.75rem; }
+
+/* ── Day chart (vertical CSS bars) ───────────────────────────────────────────── */
+.day-chart { display: flex; align-items: flex-end; gap: 0.5rem; height: 80px; padding-bottom: 1.25rem; position: relative; }
+.day-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; flex: 1; height: 100%; justify-content: flex-end; }
+.day-bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.4s ease; }
+.day-label { font-size: 0.65rem; color: var(--text-muted); text-align: center; }
+
+/* ── Recent classifications table ─────────────────────────────────────────────── */
+.cls-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.cls-table th { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+[dir="rtl"] .cls-table th { text-align: right; }
+.cls-table td { border-bottom: 1px solid var(--border-subtle); padding: 0.625rem 0.75rem; color: var(--text); vertical-align: middle; }
+.cls-table tr:last-child td { border-bottom: none; }
+.cls-table tr:hover td { background: var(--bg-elevated); }
+.title-cell { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Monitoring gauges ────────────────────────────────────────────────────────── */
+.gauge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.875rem; margin-bottom: 1.5rem; }
+.gauge-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center; }
+.gauge-value { font-size: 2rem; font-weight: 700; }
+.gauge-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+.gauge-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 0.75rem; }
+.gauge-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
+.gauge-fill.warn { background: var(--warning-text); }
+.gauge-fill.danger { background: var(--error-text); }
+
+/* ── Alert banner ─────────────────────────────────────────────────────────────── */
+.alert-banner { padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; margin-bottom: 1rem; font-weight: 500; }
+.alert-banner.warn { background: var(--warning-bg); color: var(--warning-text); }
+.alert-banner.danger { background: var(--error-bg); color: var(--error-text); }
+
+/* ── Export page ─────────────────────────────────────────────────────────────── */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1.125rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow);
+  margin-bottom: 0.875rem;
+}
+.export-btn:hover { background: var(--bg-elevated); border-color: var(--text-muted); box-shadow: var(--shadow-md); }
+.export-icon { font-size: 1.5rem; }
+.export-desc { font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); margin-top: 0.125rem; }

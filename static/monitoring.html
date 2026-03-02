@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المراقبة — Arabic ITSM</title>
+  <title>Monitoring — Arabic ITSM</title>
   <link rel="stylesheet" href="/static/common.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
@@ -35,7 +35,7 @@
           <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
           <span data-i18n="nav_dashboard">لوحة البيانات</span>
         </a>
-        <button class="btn-lang" id="langBtn" type="button">EN</button>
+        <button class="btn-lang" id="langBtn" type="button">عر</button>
         <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
           <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
           <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
@@ -131,7 +131,7 @@
       }
     };
 
-    let LANG = localStorage.getItem('lang') || 'ar';
+    let LANG = localStorage.getItem('lang') || 'en';
     function applyLang() {
       document.documentElement.setAttribute('data-lang', LANG);
       document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';

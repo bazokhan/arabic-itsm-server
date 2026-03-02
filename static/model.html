@@ -1,13 +1,37 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تصنيف التذكرة — Arabic ITSM</title>
+  <title>Ticket Classification — Arabic ITSM</title>
   <link rel="stylesheet" href="/static/common.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     .model-meta { color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem; }
+    .profile-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      padding: 0.9rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .profile-box p { margin: 0.45rem 0 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.7rem;
+    }
+    .profile-cell {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.55rem;
+      background: var(--surface);
+    }
+    .profile-k { display: block; font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .profile-v { display: block; margin-top: 0.1rem; font-size: 0.79rem; color: var(--text); }
+    .profile-hero { margin-top: 0.75rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .profile-hero img { width: 100%; height: 160px; object-fit: cover; display: block; }
     .samples { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .sample {
       border: 1px solid var(--border);
@@ -102,7 +126,7 @@
           <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
           <span data-i18n="nav_dashboard">لوحة البيانات</span>
         </a>
-        <button class="btn-lang" id="langBtn" type="button">EN</button>
+        <button class="btn-lang" id="langBtn" type="button">عر</button>
         <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
           <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
           <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
@@ -117,6 +141,7 @@
 
     <section class="card">
       <div class="model-meta" id="meta"></div>
+      <div class="profile-box" id="profileBox"></div>
 
       <p class="section-title" data-i18n="samples_label">أمثلة سريعة</p>
       <div class="samples" id="samples"></div>
@@ -129,13 +154,13 @@
             <span class="tooltip-text" data-i18n="tip_title">أدخل العنوان المختصر للمشكلة أو الطلب — مثل: "الـ VPN مش شغال"</span>
           </span>
         </label>
-        <input id="title_ar" type="text" class="form-input" data-i18n-placeholder="ph_title" placeholder="مثال: الـ VPN مش شغال">
+        <input id="title_ar" type="text" class="form-input" placeholder="مثال: الـ VPN مش شغال">
       </div>
       <div class="form-group">
         <label class="form-label" for="description_ar">
           <span data-i18n="field_desc">وصف المشكلة (اختياري)</span>
         </label>
-        <textarea id="description_ar" class="form-textarea" data-i18n-placeholder="ph_desc" placeholder="اكتب التفاصيل هنا"></textarea>
+        <textarea id="description_ar" class="form-textarea" placeholder="اكتب التفاصيل هنا"></textarea>
       </div>
       <button class="btn btn-primary submit-btn" id="btn" disabled data-i18n="btn_loading">تحميل النموذج...</button>
       <div class="error-box" id="error"></div>
@@ -175,6 +200,11 @@
         tip_l1: 'التصنيف الرئيسي (المستوى الأول) — 6 فئات رئيسية',
         tip_l2: 'التصنيف الفرعي (المستوى الثاني) — 16 فئة فرعية',
         tip_l3: 'نوع المشكلة التفصيلي (المستوى الثالث) — 48 نوعاً',
+        prof_best_for: 'مناسب لـ',
+        prof_params: 'المعاملات',
+        prof_downloads: 'تنزيلات شهرية',
+        prof_base: 'الأساس',
+        prof_hf_link: 'عرض على Hugging Face',
         btn_loading: 'تحميل النموذج...',
         btn_classify: 'تصنيف التذكرة',
         btn_classifying: 'جاري التصنيف...',
@@ -202,6 +232,11 @@
         tip_l1: 'Primary classification (Level 1) — 6 main categories',
         tip_l2: 'Sub-classification (Level 2) — 16 sub-categories',
         tip_l3: 'Detailed issue type (Level 3) — 48 types',
+        prof_best_for: 'Best for',
+        prof_params: 'Parameters',
+        prof_downloads: 'Monthly downloads',
+        prof_base: 'Base model',
+        prof_hf_link: 'View on Hugging Face',
         btn_loading: 'Loading model...',
         btn_classify: 'Classify Ticket',
         btn_classifying: 'Classifying...',
@@ -220,7 +255,7 @@
       }
     };
 
-    let LANG = localStorage.getItem('lang') || 'ar';
+    let LANG = localStorage.getItem('lang') || 'en';
     function applyLang() {
       document.documentElement.setAttribute('data-lang', LANG);
       document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
@@ -246,6 +281,7 @@
       LANG = LANG === 'ar' ? 'en' : 'ar';
       localStorage.setItem('lang', LANG);
       applyLang();
+      renderProfileInfo();
       lucide.createIcons();
     });
 
@@ -281,6 +317,36 @@
     const loadProgress = document.getElementById('loadProgress');
     const samplesEl   = document.getElementById('samples');
     const feedbackSection = document.getElementById('feedbackSection');
+    const profileBox = document.getElementById('profileBox');
+
+    const MODEL_PROFILES = {
+      'marbert-arabic-itsm-multitask': {
+        summary: {
+          en: 'Unified multitask checkpoint covering multiple classification heads in one model.',
+          ar: 'نموذج موحد متعدد المهام يغطي عدة مستويات تصنيف داخل نقطة تفتيش واحدة.'
+        },
+        bestFor: { en: 'single-model demos and wide coverage', ar: 'عروض بنموذج واحد وتغطية واسعة' },
+        params: '0.2B',
+        downloads: '12',
+        baseModel: 'UBC-NLP/MARBERTv2',
+        hfUrl: 'https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask',
+        artLabel: 'MULTITASK',
+        image: '/assets/arabic-itsm-multitask-hero.png'
+      },
+      'marbert-arabic-itsm-l3-categories': {
+        summary: {
+          en: 'L3-specialized checkpoint for fine-grained issue-type categorization.',
+          ar: 'نموذج متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.'
+        },
+        bestFor: { en: 'high-granularity category detail', ar: 'تفاصيل دقيقة للتصنيف' },
+        params: '0.2B',
+        downloads: '18',
+        baseModel: 'UBC-NLP/MARBERTv2',
+        hfUrl: 'https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories',
+        artLabel: 'L3 CATEGORIES',
+        image: '/assets/arabic-itsm-l3-hero.png'
+      }
+    };
 
     const sampleTickets = [
       { title: 'الـ VPN مش شغال', description: 'اليوزر مش قادر يدخل على الشبكة الداخلية من البيت.' },
@@ -318,6 +384,60 @@
       });
     }
 
+    function buildModelArt(label, variant) {
+      const gradA = variant === 'l3' ? '#0f766e' : '#1d4ed8';
+      const gradB = variant === 'l3' ? '#0ea5e9' : '#9333ea';
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="${gradA}"/>
+              <stop offset="100%" stop-color="${gradB}"/>
+            </linearGradient>
+          </defs>
+          <rect width="1200" height="500" fill="url(#g)"/>
+          <circle cx="980" cy="120" r="110" fill="rgba(255,255,255,0.16)"/>
+          <circle cx="1060" cy="390" r="140" fill="rgba(255,255,255,0.12)"/>
+          <rect x="58" y="66" rx="18" ry="18" width="392" height="48" fill="rgba(255,255,255,0.16)"/>
+          <rect x="58" y="132" rx="14" ry="14" width="486" height="30" fill="rgba(255,255,255,0.2)"/>
+          <rect x="58" y="182" rx="14" ry="14" width="550" height="30" fill="rgba(255,255,255,0.18)"/>
+          <rect x="58" y="232" rx="14" ry="14" width="430" height="30" fill="rgba(255,255,255,0.14)"/>
+          <text x="58" y="330" font-size="64" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-weight="700">${label}</text>
+          <text x="58" y="386" font-size="28" fill="rgba(255,255,255,0.88)" font-family="Inter, Arial, sans-serif">Arabic ITSM Classification</text>
+        </svg>
+      `.trim();
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
+    function profileFor(id) {
+      return MODEL_PROFILES[id] || {
+        summary: { en: 'Arabic ITSM classification model profile.', ar: 'ملف تعريف لنموذج تصنيف تذاكر ITSM بالعربية.' },
+        bestFor: { en: 'general Arabic ITSM inference', ar: 'تصنيف عربي عام لتذاكر ITSM' },
+        params: '—',
+        downloads: '—',
+        baseModel: '—',
+        hfUrl: '',
+        artLabel: 'ARABIC ITSM',
+        image: ''
+      };
+    }
+
+    function renderProfileInfo() {
+      const p = profileFor(modelId);
+      const art = p.image || buildModelArt(p.artLabel || 'ARABIC ITSM', modelId.includes('l3') ? 'l3' : 'multi');
+      profileBox.innerHTML = `
+        <p>${LANG === 'ar' ? p.summary.ar : p.summary.en}</p>
+        <div class="profile-grid">
+          <div class="profile-cell"><span class="profile-k">${t('prof_best_for')}</span><span class="profile-v">${LANG === 'ar' ? p.bestFor.ar : p.bestFor.en}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t('prof_params')}</span><span class="profile-v">${p.params}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t('prof_downloads')}</span><span class="profile-v">${p.downloads}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t('prof_base')}</span><span class="profile-v">${p.baseModel}</span></div>
+        </div>
+        ${p.hfUrl ? `<div style="margin-top:0.7rem;"><a class="btn" href="${p.hfUrl}" target="_blank" rel="noopener noreferrer">${t('prof_hf_link')}</a></div>` : ''}
+        <div class="profile-hero"><img src="${art}" alt="${modelId} illustration"></div>
+      `;
+    }
+
     // ── Profile loading ─────────────────────────────────────────────────────────
     async function loadProfile() {
       const res = await fetch('/api/models');
@@ -332,6 +452,7 @@
       titleEl.textContent = model.name;
       subtitleEl.textContent = `model_id: ${model.id}`;
       metaEl.textContent = model.path;
+      renderProfileInfo();
       return true;
     }
 

@@ -3,7 +3,7 @@
 
 > **Faculty of Computers and Artificial Intelligence - Cairo University**  
 > Professional Master's in Cloud Computing Networks - February 2026  
-> **Author**: Mohamed Adel Ebrahim Elbaz | **Supervisor**: Dr. Eman E. Sanad
+> **Author**: Mohamed A. Elbaz | **Supervisor**: Dr. Eman E. Sanad
 
 ---
 
@@ -192,7 +192,7 @@ D:/AI/
 ```bibtex
 @misc{elbaz2026arabic_server,
   title   = {Arabic ITSM Classification Server: Multi-Model FastAPI Inference and Web Demo Layer},
-  author  = {Elbaz, Mohamed Adel Ebrahim},
+  author  = {Elbaz, Mohamed A.},
   year    = {2026},
   note    = {Professional Master's Project, Faculty of Computers and Artificial Intelligence, Cairo University. Supervised by Dr. Eman E. Sanad.}
 }

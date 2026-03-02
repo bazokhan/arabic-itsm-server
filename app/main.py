@@ -299,6 +299,7 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 
 # ── Visitor middleware ─────────────────────────────────────────────────────────
@@ -307,7 +308,7 @@ class VisitorMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         global _active_requests
         # Skip static asset requests to reduce noise
-        if not request.url.path.startswith("/static"):
+        if not request.url.path.startswith("/static") and not request.url.path.startswith("/assets"):
             ip = request.client.host if request.client else "unknown"
             user_agent = request.headers.get("user-agent", "")
             try:

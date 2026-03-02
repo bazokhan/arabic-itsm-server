@@ -23,3 +23,9 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Runtime data / local databases
+data/
+*.db
+*.sqlite
+*.sqlite3

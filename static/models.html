@@ -1,22 +1,23 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>كتالوج النماذج — Arabic ITSM</title>
+  <title>Model Catalog — Arabic ITSM</title>
   <link rel="stylesheet" href="/static/common.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.25rem; }
     .model-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem;
+      padding: 1.5rem;
       box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.9rem;
+      min-height: 520px;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .model-card:hover { border-color: var(--text-muted); box-shadow: var(--shadow-md); }
@@ -25,6 +26,57 @@
     .model-id { color: var(--text-muted); font-size: 0.75rem; font-family: ui-monospace, monospace; }
     .model-path { color: var(--text-muted); font-size: 0.75rem; word-break: break-all; line-height: 1.4; }
     .model-card .btn { margin-top: auto; }
+    .model-hero {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: linear-gradient(130deg, var(--bg-elevated), var(--surface));
+      margin-top: 0.15rem;
+    }
+    .model-hero img {
+      display: block;
+      width: 100%;
+      height: 170px;
+      object-fit: cover;
+    }
+    .model-summary {
+      font-size: 0.84rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+    .info-cell {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.55rem;
+    }
+    .info-k {
+      display: block;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+    .info-v {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text);
+      margin-top: 0.12rem;
+      word-break: break-word;
+    }
+    .card-links {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      margin-top: 0.2rem;
+    }
     .empty-card {
       background: var(--surface);
       border: 1px dashed var(--border);
@@ -49,6 +101,11 @@
       margin-right: 0.2rem;
     }
     .meta-bar { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    .about-modal-box { max-width: 760px; max-height: 85vh; overflow: auto; }
+    .about-body { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.65; }
+    .about-section-title { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 1rem 0 0.4rem; }
+    .about-list { margin: 0; padding-inline-start: 1.1rem; }
+    .about-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
   </style>
 </head>
 <body>
@@ -67,19 +124,17 @@
           <i data-lucide="activity" style="width:16px;height:16px;"></i>
           <span data-i18n="nav_monitoring">المراقبة</span>
         </a>
-        <button class="btn-lang" id="langBtn" type="button">EN</button>
+        <button class="btn" id="aboutBtn" type="button">
+          <i data-lucide="info" style="width:14px;height:14px;"></i>
+          <span data-i18n="btn_about">About</span>
+        </button>
+        <button class="btn-lang" id="langBtn" type="button">عر</button>
         <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
           <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
           <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
         </button>
       </div>
     </header>
-
-    <!-- Intro banner -->
-    <div class="intro-banner" id="introBanner">
-      <strong data-i18n="intro_title">ما هو هذا النظام؟</strong>
-      <span data-i18n="intro_body"> — يقوم هذا النظام بتصنيف تذاكر دعم تقنية المعلومات المكتوبة بالعربية تلقائياً باستخدام نماذج ذكاء اصطناعي مدربة على بيانات ITSM. اختر نموذجاً من القائمة أدناه ثم اضغط "فتح" لتجربته.</span>
-    </div>
 
     <div class="meta-bar">
       <span id="meta" data-i18n="loading_models">جاري تحميل النماذج...</span>
@@ -92,14 +147,65 @@
     <div class="grid" id="cards"></div>
   </div>
 
+  <div class="modal-overlay" id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="modal-box about-modal-box">
+      <button class="modal-close" id="aboutCloseBtn" type="button">✕</button>
+      <p class="modal-title" id="aboutTitle" data-i18n="about_title">About This Project</p>
+      <p class="modal-sub" data-i18n="about_sub">Derived from this repository's documentation.</p>
+      <div class="about-body">
+        <p data-i18n="about_intro">Arabic ITSM Server is a FastAPI inference and demo layer for classifying Arabic IT support tickets, with support for multiple model checkpoints and dynamic task heads.</p>
+
+        <p class="about-section-title" data-i18n="about_scope_title">Core Scope</p>
+        <p data-i18n="about_scope_body">The project provides a model catalog, dedicated page per model, dashboard analytics, monitoring, and export utilities, while exposing API endpoints for single-model and multi-model inference.</p>
+
+        <p class="about-section-title" data-i18n="about_features_title">What You Can Do</p>
+        <ul class="about-list">
+          <li data-i18n="about_feature_1">Browse discovered checkpoints in the catalog and open any model-specific demo page.</li>
+          <li data-i18n="about_feature_2">Run classification with one model (`/api/classify`) or compare all loaded models (`/api/classify/all`).</li>
+          <li data-i18n="about_feature_3">Track usage metrics, recent predictions, and feedback from the dashboard.</li>
+          <li data-i18n="about_feature_4">Monitor CPU, memory, uptime, and visitor activity from the monitoring page.</li>
+          <li data-i18n="about_feature_5">Export data as CSV/ZIP or SQL backups for reporting and recovery.</li>
+        </ul>
+
+        <p class="about-section-title" data-i18n="about_deploy_title">Deployment & Reproducibility Notes</p>
+        <ul class="about-list">
+          <li data-i18n="about_deploy_1">Cloud deployment options in docs include Hugging Face Spaces, ngrok demos, Modal, Render, and Coolify VPS.</li>
+          <li data-i18n="about_deploy_2">The server records model IDs and supports per-model workflows for clearer academic comparisons.</li>
+          <li data-i18n="about_deploy_3">Tokenizer consistency safeguards were added to reduce inference mismatch risks across environments.</li>
+        </ul>
+
+        <div class="about-links">
+          <a class="btn" href="https://github.com/bazokhan/arabic-itsm-classification/tree/master/docs" target="_blank" rel="noopener noreferrer" data-i18n="about_link_docs">Project Docs</a>
+          <a class="btn" href="https://github.com/bazokhan/arabic-itsm-classification/blob/master/docs/abstract.pdf" target="_blank" rel="noopener noreferrer" data-i18n="about_link_abstract">Project Abstract</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ── i18n ───────────────────────────────────────────────────────────────────
     const T = {
       ar: {
         page_title: 'كتالوج النماذج', page_sub: 'اختر نموذجاً لتصنيف تذاكر الدعم',
         nav_dashboard: 'لوحة البيانات', nav_monitoring: 'المراقبة',
-        intro_title: 'ما هو هذا النظام؟',
-        intro_body: ' — يقوم هذا النظام بتصنيف تذاكر دعم تقنية المعلومات المكتوبة بالعربية تلقائياً باستخدام نماذج ذكاء اصطناعي مدربة على بيانات ITSM. اختر نموذجاً من القائمة أدناه ثم اضغط "فتح" لتجربته.',
+        btn_about: 'حول المشروع',
+        about_title: 'حول هذا المشروع',
+        about_sub: 'مستمد من توثيق هذا المستودع.',
+        about_intro: 'Arabic ITSM Server هو طبقة استدلال وعرض مبنية بـ FastAPI لتصنيف تذاكر دعم تقنية المعلومات بالعربية، مع دعم عدة نماذج ومهام تصنيف ديناميكية.',
+        about_scope_title: 'النطاق الأساسي',
+        about_scope_body: 'يوفر المشروع كتالوج نماذج، صفحة مخصصة لكل نموذج، لوحة بيانات، صفحة مراقبة، وأدوات تصدير، إضافة إلى واجهات API للتصنيف بنموذج واحد أو بعدة نماذج.',
+        about_features_title: 'ما الذي يمكنك عمله',
+        about_feature_1: 'استعراض النماذج المكتشفة من الكتالوج وفتح صفحة التجربة الخاصة بكل نموذج.',
+        about_feature_2: 'تشغيل التصنيف بنموذج واحد (`/api/classify`) أو مقارنة كل النماذج المحملة (`/api/classify/all`).',
+        about_feature_3: 'متابعة مؤشرات الاستخدام وآخر التصنيفات والتقييمات من لوحة البيانات.',
+        about_feature_4: 'مراقبة المعالج والذاكرة ووقت التشغيل ونشاط الزوار من صفحة المراقبة.',
+        about_feature_5: 'تصدير البيانات بصيغة CSV/ZIP أو SQL للمتابعة والنسخ الاحتياطي.',
+        about_deploy_title: 'ملاحظات النشر والموثوقية الأكاديمية',
+        about_deploy_1: 'خيارات النشر السحابي في التوثيق تشمل Hugging Face Spaces و ngrok و Modal و Render و Coolify VPS.',
+        about_deploy_2: 'الخادم يسجل model_id ويدعم مسارات عمل لكل نموذج لتسهيل المقارنة الأكاديمية.',
+        about_deploy_3: 'تمت إضافة حماية لاتساق الـ tokenizer لتقليل مخاطر عدم التطابق أثناء الاستدلال بين البيئات.',
+        about_link_docs: 'توثيق المشروع',
+        about_link_abstract: 'ملخص المشروع',
         loading_models: 'جاري تحميل النماذج...',
         btn_export: 'تصدير البيانات',
         status_ready: 'جاهز', status_loading: 'يتحمل', status_error: 'خطأ', status_cold: 'بارد',
@@ -108,6 +214,12 @@
         tip_tasks: 'مهام التصنيف التي يدعمها هذا النموذج',
         tip_cold: 'النموذج غير محمل في الذاكرة — سيتم تحميله تلقائياً عند فتحه',
         tip_ready: 'النموذج محمل في الذاكرة وجاهز للاستخدام الفوري',
+        model_summary_generic: 'نموذج تصنيف تذاكر ITSM بالعربية ضمن منظومة Arabic ITSM.',
+        model_label_best_for: 'مناسب لـ',
+        model_label_params: 'المعاملات',
+        model_label_downloads: 'تنزيلات شهرية',
+        model_label_base: 'الأساس',
+        model_hf_page: 'صفحة Hugging Face',
         no_models: 'لم يتم اكتشاف أي نموذج. تأكد من ضبط MODEL_DIRS في ملف .env وأن المجلدات تحتوي على ملف heads.pt',
         default_label: 'الافتراضي',
         tasks_label: 'المهام:',
@@ -115,8 +227,24 @@
       en: {
         page_title: 'Model Catalog', page_sub: 'Choose a model to classify support tickets',
         nav_dashboard: 'Dashboard', nav_monitoring: 'Monitoring',
-        intro_title: 'What is this system?',
-        intro_body: ' — This system automatically classifies Arabic IT support tickets using AI models trained on ITSM data. Choose a model from the list below and click "Open" to try it.',
+        btn_about: 'About',
+        about_title: 'About This Project',
+        about_sub: "Derived from this repository's documentation.",
+        about_intro: 'Arabic ITSM Server is a FastAPI inference and demo layer for classifying Arabic IT support tickets, with support for multiple model checkpoints and dynamic task heads.',
+        about_scope_title: 'Core Scope',
+        about_scope_body: 'The project provides a model catalog, dedicated page per model, dashboard analytics, monitoring, and export utilities, while exposing API endpoints for single-model and multi-model inference.',
+        about_features_title: 'What You Can Do',
+        about_feature_1: 'Browse discovered checkpoints in the catalog and open any model-specific demo page.',
+        about_feature_2: 'Run classification with one model (`/api/classify`) or compare all loaded models (`/api/classify/all`).',
+        about_feature_3: 'Track usage metrics, recent predictions, and feedback from the dashboard.',
+        about_feature_4: 'Monitor CPU, memory, uptime, and visitor activity from the monitoring page.',
+        about_feature_5: 'Export data as CSV/ZIP or SQL backups for reporting and recovery.',
+        about_deploy_title: 'Deployment & Reproducibility Notes',
+        about_deploy_1: 'Cloud deployment options in docs include Hugging Face Spaces, ngrok demos, Modal, Render, and Coolify VPS.',
+        about_deploy_2: 'The server records model IDs and supports per-model workflows for clearer academic comparisons.',
+        about_deploy_3: 'Tokenizer consistency safeguards were added to reduce inference mismatch risks across environments.',
+        about_link_docs: 'Project Docs',
+        about_link_abstract: 'Project Abstract',
         loading_models: 'Loading models...',
         btn_export: 'Export Data',
         status_ready: 'Ready', status_loading: 'Loading', status_error: 'Error', status_cold: 'Cold',
@@ -125,13 +253,19 @@
         tip_tasks: 'Classification tasks supported by this model',
         tip_cold: 'Model is not in memory — it will load automatically when you open it',
         tip_ready: 'Model is loaded in memory and ready for immediate use',
+        model_summary_generic: 'Arabic ITSM ticket classification profile in the Arabic ITSM stack.',
+        model_label_best_for: 'Best for',
+        model_label_params: 'Parameters',
+        model_label_downloads: 'Monthly downloads',
+        model_label_base: 'Base model',
+        model_hf_page: 'Hugging Face page',
         no_models: 'No checkpoints discovered. Set MODEL_DIRS in .env and ensure folders contain heads.pt',
         default_label: 'Default',
         tasks_label: 'Tasks:',
       }
     };
 
-    let LANG = localStorage.getItem('lang') || 'ar';
+    let LANG = localStorage.getItem('lang') || 'en';
     function applyLang() {
       document.documentElement.setAttribute('data-lang', LANG);
       document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
@@ -170,6 +304,98 @@
 
     lucide.createIcons();
 
+    const MODEL_PROFILES = {
+      'marbert-arabic-itsm-multitask': {
+        summary: {
+          en: 'Unified multitask checkpoint for broad ITSM ticket routing where one model can predict across multiple hierarchy levels.',
+          ar: 'نقطة تفتيش متعددة المهام لتوجيه تذاكر ITSM بشكل شامل عندما تحتاج نموذجاً واحداً يغطي مستويات تصنيف متعددة.'
+        },
+        bestFor: {
+          en: 'single-model demos and broad task coverage',
+          ar: 'العروض بنموذج واحد وتغطية مهام واسعة'
+        },
+        params: '0.2B',
+        downloads: '12',
+        baseModel: 'UBC-NLP/MARBERTv2',
+        hfUrl: 'https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask',
+        artLabel: 'MULTITASK',
+        image: '/assets/arabic-itsm-multitask-hero.png'
+      },
+      'marbert-arabic-itsm-l3-categories': {
+        summary: {
+          en: 'Specialized L3-focused checkpoint for fine-grained issue type categorization in Arabic ITSM support workflows.',
+          ar: 'نقطة تفتيش متخصصة في تصنيفات L3 الدقيقة لتحديد نوع المشكلة بالتفصيل داخل مسارات دعم ITSM العربية.'
+        },
+        bestFor: {
+          en: 'high-granularity category detail',
+          ar: 'تفاصيل تصنيف دقيقة عالية المستوى'
+        },
+        params: '0.2B',
+        downloads: '18',
+        baseModel: 'UBC-NLP/MARBERTv2',
+        hfUrl: 'https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories',
+        artLabel: 'L3 CATEGORIES',
+        image: '/assets/arabic-itsm-l3-hero.png'
+      }
+    };
+
+    function buildModelArt(label, variant) {
+      const gradA = variant === 'l3' ? '#0f766e' : '#1d4ed8';
+      const gradB = variant === 'l3' ? '#0ea5e9' : '#9333ea';
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="${gradA}"/>
+              <stop offset="100%" stop-color="${gradB}"/>
+            </linearGradient>
+          </defs>
+          <rect width="1200" height="500" fill="url(#g)"/>
+          <circle cx="980" cy="120" r="110" fill="rgba(255,255,255,0.16)"/>
+          <circle cx="1060" cy="390" r="140" fill="rgba(255,255,255,0.12)"/>
+          <rect x="58" y="66" rx="18" ry="18" width="392" height="48" fill="rgba(255,255,255,0.16)"/>
+          <rect x="58" y="132" rx="14" ry="14" width="486" height="30" fill="rgba(255,255,255,0.2)"/>
+          <rect x="58" y="182" rx="14" ry="14" width="550" height="30" fill="rgba(255,255,255,0.18)"/>
+          <rect x="58" y="232" rx="14" ry="14" width="430" height="30" fill="rgba(255,255,255,0.14)"/>
+          <text x="58" y="330" font-size="64" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-weight="700">${label}</text>
+          <text x="58" y="386" font-size="28" fill="rgba(255,255,255,0.88)" font-family="Inter, Arial, sans-serif">Arabic ITSM Classification</text>
+        </svg>
+      `.trim();
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
+    function profileFor(modelId) {
+      const p = MODEL_PROFILES[modelId];
+      if (!p) {
+        return {
+          summary: { en: t('model_summary_generic'), ar: t('model_summary_generic') },
+          bestFor: { en: 'general Arabic ITSM inference', ar: 'تصنيف عربي عام لتذاكر ITSM' },
+          params: '—',
+          downloads: '—',
+          baseModel: '—',
+          hfUrl: '',
+          artLabel: 'ARABIC ITSM',
+          image: ''
+        };
+      }
+      return p;
+    }
+
+    function openAboutModal() {
+      document.getElementById('aboutModal').classList.add('open');
+    }
+    function closeAboutModal() {
+      document.getElementById('aboutModal').classList.remove('open');
+    }
+    document.getElementById('aboutBtn').addEventListener('click', openAboutModal);
+    document.getElementById('aboutCloseBtn').addEventListener('click', closeAboutModal);
+    document.getElementById('aboutModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('aboutModal')) closeAboutModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAboutModal();
+    });
+
     let _models = [];
     let _defaultId = '';
     let _pollTimer = null;
@@ -193,6 +419,9 @@
       const progress = m.progress || 0;
       const isDefault = m.id === _defaultId;
       const msg = isLoading && m.message ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.15rem;">${m.message}</div>` : '';
+      const profile = profileFor(m.id);
+      const artVariant = m.id.includes('l3') ? 'l3' : 'multi';
+      const art = profile.image || buildModelArt(profile.artLabel || m.name, artVariant);
 
       const taskPills = (m.tasks && m.tasks.length)
         ? `<div style="margin-top:0.25rem;">
@@ -218,6 +447,29 @@
             <span class="tooltip-text">${t('tip_model_id')}</span>
           </div>
           <div class="model-path" title="${m.path}">${m.path}</div>
+          <div class="model-hero"><img src="${art}" alt="${m.name} visual"></div>
+          <p class="model-summary">${LANG === 'ar' ? profile.summary.ar : profile.summary.en}</p>
+          <div class="info-grid">
+            <div class="info-cell">
+              <span class="info-k">${t('model_label_best_for')}</span>
+              <span class="info-v">${LANG === 'ar' ? profile.bestFor.ar : profile.bestFor.en}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-k">${t('model_label_params')}</span>
+              <span class="info-v">${profile.params}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-k">${t('model_label_downloads')}</span>
+              <span class="info-v">${profile.downloads}</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-k">${t('model_label_base')}</span>
+              <span class="info-v">${profile.baseModel}</span>
+            </div>
+          </div>
+          <div class="card-links">
+            ${profile.hfUrl ? `<a class="btn" href="${profile.hfUrl}" target="_blank" rel="noopener noreferrer">${t('model_hf_page')}</a>` : ''}
+          </div>
           ${taskPills}
           ${msg}
           <div class="progress-bar" style="margin-top:0.5rem;"><div class="progress-fill" style="width:${progress}%"></div></div>

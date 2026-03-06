@@ -12,12 +12,15 @@ API routes:
   - GET  /api/monitoring
   - GET  /api/export/csv  (ZIP with CSV)
   - GET  /api/export/sql  (SQL dump)
+  - GET  /api/research/status
+  - POST /api/research/run
   - GET  /api/health
 
 Page routes:
   - GET  /           -> redirect to /models
   - GET  /models
   - GET  /models/{model_id}
+  - GET  /research
   - GET  /dashboard
   - GET  /monitoring
   - GET  /admin/export
@@ -28,6 +31,8 @@ import csv
 import gc
 import io
 import os
+import subprocess
+import sys
 import threading
 import time
 import zipfile
@@ -72,6 +77,19 @@ _state_lock = threading.RLock()
 _active_requests: int = 0
 _active_requests_lock = threading.Lock()
 _server_start_time: float = time.time()
+
+# ── Research benchmark state ───────────────────────────────────────────────────
+_research_state: dict[str, object] = {
+    "status": "idle",  # idle | running | success | error
+    "started_at": None,
+    "finished_at": None,
+    "return_code": None,
+    "message": "No benchmark has been executed yet.",
+    "last_run_cmd": None,
+    "last_run_duration_sec": None,
+    "log_tail": [],
+}
+_research_lock = threading.RLock()
 
 
 def _discover_profiles() -> dict[str, dict]:
@@ -246,6 +264,170 @@ def _start_background_load(model_id: str):
     t.start()
 
 
+def _update_research_state(**kwargs):
+    with _research_lock:
+        _research_state.update(kwargs)
+
+
+def _append_research_log(line: str, limit: int = 120):
+    text = line.strip()
+    if not text:
+        return
+    with _research_lock:
+        logs = list(_research_state.get("log_tail", []))
+        logs.append(text)
+        _research_state["log_tail"] = logs[-limit:]
+
+
+def _run_research_benchmark(
+    limit: int | None = None,
+    split_name: str = "test",
+    model_a_id_override: str | None = None,
+    model_b_id_override: str | None = None,
+    model_a_path_override: str | None = None,
+    model_b_path_override: str | None = None,
+    dataset_csv_override: str | None = None,
+    dataset_url_override: str | None = None,
+):
+    model_a_id = (model_a_id_override or os.getenv("COMPARISON_MODEL_A_ID", "marbert-arabic-itsm-l3-categories")).strip()
+    model_b_id = (model_b_id_override or os.getenv("COMPARISON_MODEL_B_ID", "marbert-arabic-itsm-multitask")).strip()
+    model_a_path = (model_a_path_override or os.getenv("COMPARISON_MODEL_A_PATH", "")).strip()
+    model_b_path = (model_b_path_override or os.getenv("COMPARISON_MODEL_B_PATH", "")).strip()
+    if not model_a_path and model_a_id in _profiles:
+        model_a_path = str(_profiles[model_a_id]["path"])
+    if not model_b_path and model_b_id in _profiles:
+        model_b_path = str(_profiles[model_b_id]["path"])
+
+    dataset_csv = (dataset_csv_override or os.getenv("COMPARISON_DATASET_CSV", "data/processed/test.csv")).strip()
+    dataset_url = (dataset_url_override or os.getenv("COMPARISON_DATASET_URL", "")).strip()
+    model_a_url = os.getenv(
+        "COMPARISON_MODEL_A_URL",
+        "https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories",
+    ).strip()
+    model_b_url = os.getenv(
+        "COMPARISON_MODEL_B_URL",
+        "https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask",
+    ).strip()
+    dataset_hf_url = os.getenv(
+        "COMPARISON_DATASET_HF_URL",
+        "https://huggingface.co/datasets/albaz2000/arabic-itsm-dataset",
+    ).strip()
+
+    repo_root = Path(__file__).resolve().parents[1]
+    script_path = repo_root / "scripts" / "run_model_comparison.py"
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--split-name",
+        split_name,
+        "--model-a-id",
+        model_a_id,
+        "--model-b-id",
+        model_b_id,
+        "--model-a-url",
+        model_a_url,
+        "--model-b-url",
+        model_b_url,
+        "--dataset-hf-url",
+        dataset_hf_url,
+    ]
+    if dataset_csv:
+        cmd.extend(["--dataset-csv", dataset_csv])
+    if dataset_url:
+        cmd.extend(["--dataset-url", dataset_url])
+    if model_a_path:
+        cmd.extend(["--model-a-path", model_a_path])
+    if model_b_path:
+        cmd.extend(["--model-b-path", model_b_path])
+    if limit is not None:
+        cmd.extend(["--limit", str(limit)])
+
+    _update_research_state(
+        status="running",
+        started_at=time.time(),
+        finished_at=None,
+        return_code=None,
+        message="Benchmark is running.",
+        last_run_cmd=" ".join(cmd),
+        last_run_duration_sec=None,
+        log_tail=[],
+    )
+
+    start = time.perf_counter()
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(repo_root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except Exception as exc:
+        _update_research_state(
+            status="error",
+            finished_at=time.time(),
+            return_code=-1,
+            message=f"Failed to start benchmark: {exc}",
+        )
+        return
+
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        _append_research_log(line)
+
+    code = proc.wait()
+    duration = round(time.perf_counter() - start, 2)
+    if code == 0:
+        _update_research_state(
+            status="success",
+            finished_at=time.time(),
+            return_code=0,
+            message="Benchmark completed successfully.",
+            last_run_duration_sec=duration,
+        )
+    else:
+        _update_research_state(
+            status="error",
+            finished_at=time.time(),
+            return_code=code,
+            message="Benchmark failed. Check logs for details.",
+            last_run_duration_sec=duration,
+        )
+
+
+def _start_research_benchmark(
+    limit: int | None = None,
+    split_name: str = "test",
+    model_a_id_override: str | None = None,
+    model_b_id_override: str | None = None,
+    model_a_path_override: str | None = None,
+    model_b_path_override: str | None = None,
+    dataset_csv_override: str | None = None,
+    dataset_url_override: str | None = None,
+) -> bool:
+    with _research_lock:
+        if _research_state.get("status") == "running":
+            return False
+    t = threading.Thread(
+        target=_run_research_benchmark,
+        kwargs={
+            "limit": limit,
+            "split_name": split_name,
+            "model_a_id_override": model_a_id_override,
+            "model_b_id_override": model_b_id_override,
+            "model_a_path_override": model_a_path_override,
+            "model_b_path_override": model_b_path_override,
+            "dataset_csv_override": dataset_csv_override,
+            "dataset_url_override": dataset_url_override,
+        },
+        daemon=True,
+    )
+    t.start()
+    return True
+
+
 # ── Lifespan ───────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -340,6 +522,17 @@ class FeedbackIn(BaseModel):
     thumbs: str
     comment: str | None = None
     email: str | None = None
+
+
+class ResearchRunIn(BaseModel):
+    limit: int | None = None
+    split_name: str = "test"
+    dataset_csv: str | None = None
+    dataset_url: str | None = None
+    model_a_id: str | None = None
+    model_b_id: str | None = None
+    model_a_path: str | None = None
+    model_b_path: str | None = None
 
 
 # ── Model management routes ────────────────────────────────────────────────────
@@ -609,6 +802,44 @@ async def api_export_sql():
     )
 
 
+# ── Research benchmark routes ──────────────────────────────────────────────────
+
+@app.get("/api/research/status", summary="Get offline benchmark execution status")
+async def api_research_status():
+    with _research_lock:
+        return dict(_research_state)
+
+
+@app.post("/api/research/run", summary="Run offline benchmark and regenerate research artifacts")
+async def api_research_run(body: ResearchRunIn):
+    if body.limit is not None and body.limit <= 0:
+        raise HTTPException(status_code=400, detail="limit must be positive when provided")
+
+    started = _start_research_benchmark(
+        limit=body.limit,
+        split_name=body.split_name,
+        model_a_id_override=body.model_a_id,
+        model_b_id_override=body.model_b_id,
+        model_a_path_override=body.model_a_path,
+        model_b_path_override=body.model_b_path,
+        dataset_csv_override=body.dataset_csv,
+        dataset_url_override=body.dataset_url,
+    )
+    if not started:
+        with _research_lock:
+            return {
+                "accepted": False,
+                "message": "Benchmark is already running.",
+                "status": dict(_research_state),
+            }
+    with _research_lock:
+        return {
+            "accepted": True,
+            "message": "Benchmark started.",
+            "status": dict(_research_state),
+        }
+
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/api/health", summary="Health check")
@@ -636,6 +867,11 @@ async def models_page():
 @app.get("/dashboard", include_in_schema=False)
 async def dashboard_page():
     return FileResponse("static/dashboard.html")
+
+
+@app.get("/research", include_in_schema=False)
+async def research_page():
+    return FileResponse("static/research.html")
 
 
 @app.get("/monitoring", include_in_schema=False)

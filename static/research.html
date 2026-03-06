@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparative Evaluation — Arabic ITSM</title>
+  <link rel="stylesheet" href="/static/common.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    .toolbar { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+    .research-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0.9rem; margin-bottom:1rem; }
+    .research-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; box-shadow:var(--shadow); }
+    .research-k { font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+    .research-v { margin-top:0.25rem; font-size:0.95rem; font-weight:600; word-break:break-word; }
+    .section-title { font-size:0.8125rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin:1.2rem 0 0.6rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
+    .section-title-left { display:flex; align-items:center; gap:0.4rem; }
+    .section-actions { display:flex; gap:0.35rem; align-items:center; }
+    .result-table-wrap { overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border); background:var(--surface); }
+    .result-table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+    .result-table th { text-align:left; font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; border-bottom:1px solid var(--border); padding:0.55rem 0.7rem; white-space:nowrap; cursor:pointer; user-select:none; }
+    [dir="rtl"] .result-table th { text-align:right; }
+    .result-table td { border-bottom:1px solid var(--border-subtle); padding:0.55rem 0.7rem; vertical-align:top; }
+    .result-table tr:last-child td { border-bottom:none; }
+    .result-table tbody tr:hover { background:var(--bg-elevated); cursor:pointer; }
+    .mono { font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:0.78rem; }
+    .chart-wrap { border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); padding:1rem; box-shadow:var(--shadow); margin-bottom:0.7rem; }
+    .bar-comp { display:flex; flex-direction:column; gap:0.55rem; }
+    .bar-comp-row { display:grid; grid-template-columns:120px 1fr 1fr; gap:0.5rem; align-items:center; font-size:0.81rem; }
+    .bar-track { height:8px; border-radius:999px; background:var(--border); overflow:hidden; }
+    .bar-a { height:100%; background:#2563eb; }
+    .bar-b { height:100%; background:#16a34a; }
+    .bar-val { font-size:0.72rem; color:var(--text-muted); margin-top:0.14rem; text-align:right; }
+    .muted { color:var(--text-muted); font-size:0.84rem; }
+    .artifact-links { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .article-render { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; line-height:1.62; font-size:0.86rem; }
+    .article-render h1,.article-render h2,.article-render h3 { margin:0.7rem 0 0.4rem; font-size:1rem; }
+    .article-render ul { margin:0.4rem 0 0.8rem 1.1rem; }
+    .hidden { display:none !important; }
+    .badge-mini { border:1px solid var(--border); background:var(--bg-elevated); border-radius:999px; font-size:0.72rem; padding:0.18rem 0.5rem; color:var(--text-muted); }
+    .logbox { font-family:ui-monospace,monospace; font-size:0.74rem; border:1px solid var(--border); border-radius:8px; background:var(--surface); padding:0.6rem; max-height:140px; overflow:auto; line-height:1.4; }
+  </style>
+</head>
+<body>
+  <div class="page-wide" style="padding-top:2rem;">
+    <header class="header">
+      <div class="header-brand">
+        <h1 data-i18n="title">Comparative Evaluation</h1>
+        <p data-i18n="subtitle">Interactive evidence table, charts, and publication-ready article view</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn nav-link" href="/models"><i data-lucide="layout-grid" style="width:16px;height:16px;"></i><span data-i18n="nav_catalog">Catalog</span></a>
+        <a class="btn nav-link" href="/dashboard"><i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i><span data-i18n="nav_dashboard">Dashboard</span></a>
+        <button class="btn-lang" id="langBtn" type="button">عر</button>
+        <button class="btn-icon" id="themeBtn" type="button"><i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i><i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i></button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="runBtn"><i data-lucide="play" style="width:14px;height:14px;"></i><span data-i18n="run_btn">Run Benchmark</span></button>
+      <button class="btn" id="refreshBtn"><i data-lucide="refresh-cw" style="width:14px;height:14px;"></i><span data-i18n="refresh_btn">Refresh Artifacts</span></button>
+      <button class="btn" id="glossaryBtn"><i data-lucide="circle-help" style="width:14px;height:14px;"></i><span data-i18n="glossary_btn">Concepts</span></button>
+      <span id="runnerStatus" class="badge-mini">Idle</span>
+    </div>
+    <div id="status" class="intro-banner" data-i18n="loading">Loading report artifacts...</div>
+    <div class="logbox hidden" id="runLog"></div>
+    <div id="missingBox" class="intro-banner hidden"></div>
+
+    <section id="content" class="hidden">
+      <div class="research-grid" id="overviewCards"></div>
+
+      <div class="section-title">
+        <div class="section-title-left"><i data-lucide="table-2" style="width:14px;height:14px;"></i><span data-i18n="section_metrics">Per-task metrics</span></div>
+        <div class="section-actions">
+          <button class="btn" id="expandMetricsBtn"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button>
+        </div>
+      </div>
+      <div class="result-table-wrap" id="metricsWrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th data-sort="task">Task</th>
+              <th data-sort="macro_a">Macro-F1 A</th>
+              <th data-sort="acc_a">Accuracy A</th>
+              <th data-sort="top3_a">Top-3 A</th>
+              <th data-sort="macro_b">Macro-F1 B</th>
+              <th data-sort="acc_b">Accuracy B</th>
+              <th data-sort="top3_b">Top-3 B</th>
+            </tr>
+          </thead>
+          <tbody id="metricsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-title">
+        <div class="section-title-left"><i data-lucide="git-compare" style="width:14px;height:14px;"></i><span data-i18n="section_paired">Paired tests</span></div>
+        <div class="section-actions"><button class="btn" id="expandPairedBtn"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button></div>
+      </div>
+      <div class="result-table-wrap" id="pairedWrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th data-sort-paired="task">Task</th>
+              <th data-sort-paired="diff">Acc Diff (A-B)</th>
+              <th>95% CI</th>
+              <th data-sort-paired="pvalue">McNemar p</th>
+              <th>Discordant</th>
+            </tr>
+          </thead>
+          <tbody id="pairedBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-title">
+        <div class="section-title-left"><i data-lucide="bar-chart-3" style="width:14px;height:14px;"></i><span data-i18n="section_charts">Charts</span></div>
+        <div class="section-actions"><button class="btn" id="expandChartsBtn"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button></div>
+      </div>
+      <div id="chartsWrap">
+        <div class="chart-wrap"><p class="muted">Macro-F1 per task</p><div class="bar-comp" id="macroChart"></div></div>
+        <div class="chart-wrap"><p class="muted">Mean latency per task (ms)</p><div class="bar-comp" id="latencyChart"></div></div>
+      </div>
+
+      <div class="section-title"><div class="section-title-left"><i data-lucide="alert-triangle" style="width:14px;height:14px;"></i><span data-i18n="section_confusions">Top confusions</span></div></div>
+      <div class="research-grid" id="confusionsGrid"></div>
+
+      <div class="section-title"><div class="section-title-left"><i data-lucide="file-text" style="width:14px;height:14px;"></i><span data-i18n="section_article">Article</span></div></div>
+      <div class="article-render" id="articleText"></div>
+
+      <div class="section-title"><div class="section-title-left"><i data-lucide="download" style="width:14px;height:14px;"></i><span data-i18n="section_artifacts">Artifacts</span></div></div>
+      <div class="artifact-links" id="artifactLinks"></div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="detailModal"><div class="modal-box" style="max-width:860px;max-height:88vh;overflow:auto;"><button class="modal-close" id="detailClose">✕</button><div id="detailBody"></div></div></div>
+  <div class="modal-overlay" id="glossaryModal"><div class="modal-box" style="max-width:620px;"><button class="modal-close" id="glossaryClose">✕</button><p class="modal-title">Concepts</p><div style="font-size:0.88rem;line-height:1.6;color:var(--text-secondary)"><p><strong>Macro-F1:</strong> Average F1 across classes, giving each class equal weight.</p><p><strong>Top-3 hit rate:</strong> Ground-truth label appears in model top 3 suggestions.</p><p><strong>McNemar p-value:</strong> Tests whether model A and B differ on the same examples.</p><p><strong>95% CI:</strong> Range likely to contain the true metric value under repeated sampling.</p></div></div></div>
+
+  <script>
+    const T={en:{title:'Comparative Evaluation',subtitle:'Interactive evidence table, charts, and publication-ready article view',nav_catalog:'Catalog',nav_dashboard:'Dashboard',run_btn:'Run Benchmark',refresh_btn:'Refresh Artifacts',glossary_btn:'Concepts',section_metrics:'Per-task metrics',section_paired:'Paired tests',section_charts:'Charts',section_confusions:'Top confusions',section_article:'Article',section_artifacts:'Artifacts',loading:'Loading report artifacts...'},ar:{title:'التقييم المقارن',subtitle:'عرض تفاعلي للأدلة والجداول والرسوم والمقال',nav_catalog:'الكتالوج',nav_dashboard:'لوحة البيانات',run_btn:'تشغيل التقييم',refresh_btn:'تحديث النتائج',glossary_btn:'المفاهيم',section_metrics:'مقاييس كل مهمة',section_paired:'الاختبارات الزوجية',section_charts:'الرسوم البيانية',section_confusions:'أكثر حالات الالتباس',section_article:'المقال',section_artifacts:'الملفات',loading:'جاري تحميل النتائج...'}};
+    let LANG=localStorage.getItem('lang')||'en'; let report=null; let metricsSort={key:'task',dir:'asc'}; let pairedSort={key:'task',dir:'asc'}; let pollTimer=null;
+    const byId=id=>document.getElementById(id);
+    const fmt=(x,d=4)=>Number.isFinite(Number(x))?Number(x).toFixed(d):'—';
+    const pct=x=>Number.isFinite(Number(x))?`${(Number(x)*100).toFixed(2)}%`:'—';
+    function t(k){return (T[LANG]&&T[LANG][k])||k;}
+    function applyLang(){document.documentElement.dir=LANG==='ar'?'rtl':'ltr';document.documentElement.lang=LANG;document.documentElement.setAttribute('data-lang',LANG);byId('langBtn').textContent=LANG==='ar'?'EN':'عر';document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(T[LANG][k]!==undefined)el.textContent=T[LANG][k];});}
+    (function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light');applyLang();})();
+    byId('langBtn').addEventListener('click',()=>{LANG=LANG==='ar'?'en':'ar';localStorage.setItem('lang',LANG);applyLang(); if(report) renderReport(report); lucide.createIcons();});
+    byId('themeBtn').addEventListener('click',()=>{const r=document.documentElement;const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem('theme',n);document.querySelector('.icon-dark').classList.toggle('hidden',n==='dark');document.querySelector('.icon-light').classList.toggle('hidden',n==='light');lucide.createIcons();});
+
+    function openModal(contentHtml){byId('detailBody').innerHTML=contentHtml;byId('detailModal').classList.add('open');}
+    byId('detailClose').onclick=()=>byId('detailModal').classList.remove('open');
+    byId('detailModal').onclick=e=>{if(e.target===byId('detailModal'))byId('detailModal').classList.remove('open');};
+    byId('glossaryBtn').onclick=()=>byId('glossaryModal').classList.add('open');
+    byId('glossaryClose').onclick=()=>byId('glossaryModal').classList.remove('open');
+    byId('glossaryModal').onclick=e=>{if(e.target===byId('glossaryModal'))byId('glossaryModal').classList.remove('open');};
+
+    function sortRows(rows, sort){return rows.sort((a,b)=>{const av=a[sort.key],bv=b[sort.key]; if(typeof av==='number'&&typeof bv==='number') return sort.dir==='asc'?av-bv:bv-av; return sort.dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));});}
+
+    function renderOverview(r){const refs=r.references||{};const cards=[['Rows',r.dataset.rows_evaluated],['Split',r.config.split_name],['Generated',r.generated_at_utc],['Model A',r.models.a.id],['Model B',r.models.b.id],['Dataset CSV',r.config.dataset_csv||'—'],['Dataset HF',`<a href="${refs.dataset_hf_url||'#'}" target="_blank">${refs.dataset_hf_url||'—'}</a>`]]; byId('overviewCards').innerHTML=cards.map(c=>`<article class="research-card"><div class="research-k">${c[0]}</div><div class="research-v">${c[1]}</div></article>`).join('');}
+    function metricsRows(r){const tasks=[...new Set([...Object.keys(r.metrics.a.tasks||{}),...Object.keys(r.metrics.b.tasks||{})])]; return tasks.map(task=>{const a=r.metrics.a.tasks[task]||{},b=r.metrics.b.tasks[task]||{};return {task,macro_a:Number(a.macro_f1||0),acc_a:Number(a.accuracy||0),top3_a:Number(a.top3_hit_rate||0),macro_b:Number(b.macro_f1||0),acc_b:Number(b.accuracy||0),top3_b:Number(b.top3_hit_rate||0),a,b};});}
+    function renderMetrics(r){const rows=sortRows(metricsRows(r),metricsSort); byId('metricsBody').innerHTML=rows.map(row=>`<tr data-task="${row.task}"><td class="mono">${row.task}</td><td>${fmt(row.macro_a)}</td><td>${pct(row.acc_a)}</td><td>${pct(row.top3_a)}</td><td>${fmt(row.macro_b)}</td><td>${pct(row.acc_b)}</td><td>${pct(row.top3_b)}</td></tr>`).join(''); byId('metricsBody').querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{const t=tr.dataset.task;const a=r.metrics.a.tasks[t]||{},b=r.metrics.b.tasks[t]||{};openModal(`<p class="modal-title">Task: <span class="mono">${t}</span></p><p class="modal-sub">Class-level metrics and confusion summary</p><div class="result-table-wrap"><table class="result-table"><thead><tr><th>Label</th><th>Support</th><th>F1 A</th><th>F1 B</th></tr></thead><tbody>${(a.by_class||[]).slice(0,20).map(c=>{const bC=(b.by_class||[]).find(x=>x.label===c.label)||{};return `<tr><td>${c.label}</td><td>${c.support}</td><td>${fmt(c.f1)}</td><td>${fmt(bC.f1||0)}</td></tr>`;}).join('')}</tbody></table></div>`);});}
+    function pairedRows(r){return Object.keys(r.paired_tests||{}).map(task=>({task,diff:Number(r.paired_tests[task].accuracy_diff_a_minus_b||0),pvalue:Number(r.paired_tests[task].mcnemar_p_value||1),raw:r.paired_tests[task]}));}
+    function renderPaired(r){const rows=sortRows(pairedRows(r),pairedSort);byId('pairedBody').innerHTML=rows.map(x=>`<tr><td class="mono">${x.task}</td><td>${fmt(x.diff)}</td><td>[${fmt(x.raw.accuracy_diff_ci95[0])}, ${fmt(x.raw.accuracy_diff_ci95[1])}]</td><td>${x.raw.mcnemar_p_value}</td><td>${x.raw.mcnemar_n01_a_correct_b_wrong}/${x.raw.mcnemar_n10_a_wrong_b_correct}</td></tr>`).join('');}
+    function makeChart(elId, rows, keyA, keyB, maxV, formatFn){byId(elId).innerHTML=rows.map(r=>{const a=Number(r[keyA]||0),b=Number(r[keyB]||0);const aw=Math.min(100,(a/maxV)*100),bw=Math.min(100,(b/maxV)*100);return `<div class="bar-comp-row"><div class="mono">${r.task}</div><div><div class="bar-track"><div class="bar-a" style="width:${aw}%"></div></div><div class="bar-val">${formatFn(a)}</div></div><div><div class="bar-track"><div class="bar-b" style="width:${bw}%"></div></div><div class="bar-val">${formatFn(b)}</div></div></div>`;}).join('');}
+    function renderConfusions(r){byId('confusionsGrid').innerHTML=(r.shared_tasks||[]).map(task=>{const a=(r.metrics.a.tasks[task]||{}).top_confusions||[];const b=(r.metrics.b.tasks[task]||{}).top_confusions||[];return `<article class="research-card"><div class="research-k mono">${task}</div><div class="muted" style="margin-top:.4rem">${r.models.a.id}</div>${a.slice(0,4).map(x=>`<div class="mono">${x.true} -> ${x.pred} (${x.count})</div>`).join('')}<div class="muted" style="margin-top:.5rem">${r.models.b.id}</div>${b.slice(0,4).map(x=>`<div class="mono">${x.true} -> ${x.pred} (${x.count})</div>`).join('')}</article>`;}).join('');}
+    function renderArticle(md){byId('articleText').innerHTML=window.marked?marked.parse(md||''):'';}
+    function renderArtifacts(r){const base='/static/reports/';const a=r.artifacts||{};const links=[a.report_json,a.raw_predictions_csv,a.article_markdown].filter(Boolean);byId('artifactLinks').innerHTML=links.map(n=>`<a class="btn" href="${base+n}" target="_blank"><i data-lucide="file-text" style="width:14px;height:14px;"></i>${n}</a>`).join('');}
+    function renderReport(r){report=r;renderOverview(r);renderMetrics(r);renderPaired(r);const rows=(r.charts.task_rows||[]).slice();makeChart('macroChart',rows,'macro_f1_a','macro_f1_b',1,v=>pct(v));const maxLat=Math.max(...rows.map(x=>Number(x.latency_mean_a_ms||0)),...rows.map(x=>Number(x.latency_mean_b_ms||0)),1);makeChart('latencyChart',rows,'latency_mean_a_ms','latency_mean_b_ms',maxLat,v=>`${fmt(v,2)} ms`);renderConfusions(r);renderArtifacts(r);byId('content').classList.remove('hidden');byId('missingBox').classList.add('hidden');byId('status').textContent=`Loaded: ${r.models.a.id} vs ${r.models.b.id}`;lucide.createIcons();}
+
+    async function fetchReport(){const res=await fetch(`/static/reports/model_comparison_report.json?ts=${Date.now()}`);if(!res.ok) throw new Error(`HTTP ${res.status}`);const r=await res.json();const mdRes=await fetch(`/static/reports/model_comparison_article.md?ts=${Date.now()}`);const md=mdRes.ok?await mdRes.text():'';renderReport(r);renderArticle(md);}
+    async function refreshAll(){try{await fetchReport();}catch{byId('content').classList.add('hidden');byId('missingBox').classList.remove('hidden');byId('missingBox').textContent='Artifacts not found yet. Run benchmark from this page.';}}
+
+    async function pollRunner(){if(pollTimer)clearInterval(pollTimer);const tick=async()=>{const s=await (await fetch('/api/research/status')).json();byId('runnerStatus').textContent=`${s.status}`;if(s.log_tail&&s.log_tail.length){byId('runLog').classList.remove('hidden');byId('runLog').textContent=s.log_tail.join('\n');byId('runLog').scrollTop=byId('runLog').scrollHeight;}if(s.status==='success'||s.status==='error'||s.status==='idle'){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}if(s.status==='success') await refreshAll();}};await tick();pollTimer=setInterval(tick,1200);}
+    byId('runBtn').onclick=async()=>{const r=await fetch('/api/research/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({split_name:'test'})});const data=await r.json();byId('status').textContent=data.message||'Started';await pollRunner();};
+    byId('refreshBtn').onclick=refreshAll;
+
+    document.querySelectorAll('[data-sort]').forEach(th=>th.onclick=()=>{const key=th.dataset.sort;metricsSort={key,dir:metricsSort.key===key&&metricsSort.dir==='asc'?'desc':'asc'};if(report)renderMetrics(report);});
+    document.querySelectorAll('[data-sort-paired]').forEach(th=>th.onclick=()=>{const key=th.dataset.sortPaired;pairedSort={key,dir:pairedSort.key===key&&pairedSort.dir==='asc'?'desc':'asc'};if(report)renderPaired(report);});
+    byId('expandMetricsBtn').onclick=()=>openModal(`<p class="modal-title">Metrics Table</p>${byId('metricsWrap').outerHTML}`);
+    byId('expandPairedBtn').onclick=()=>openModal(`<p class="modal-title">Paired Tests</p>${byId('pairedWrap').outerHTML}`);
+    byId('expandChartsBtn').onclick=()=>openModal(`<p class="modal-title">Charts</p>${byId('chartsWrap').outerHTML}`);
+
+    (async()=>{document.querySelector('.icon-dark').classList.toggle('hidden',document.documentElement.getAttribute('data-theme')==='dark');document.querySelector('.icon-light').classList.toggle('hidden',document.documentElement.getAttribute('data-theme')==='light');await refreshAll();await pollRunner();lucide.createIcons();})();
+  </script>
+</body>
+</html>

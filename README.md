@@ -14,7 +14,7 @@ It now supports:
 
 - model catalog page (`/models`)
 - dedicated web page per model profile (`/models/{model_id}`)
-- combined multi-model comparison page (`/compare`)
+- comparative evaluation page (`/research`)
 - inference by selected model (`/api/classify?model_id=...`)
 - inference across all loaded profiles (`/api/classify/all`)
 - dynamic task support per checkpoint (`l1`, `l2`, `l3`, etc. based on `heads.pt`)
@@ -34,6 +34,7 @@ For academic traceability and reproducibility:
 - Project abstract: `https://github.com/bazokhan/arabic-itsm-classification/blob/master/docs/abstract.pdf`
 - Dataset methodology: `https://github.com/bazokhan/arabic-itsm-dataset`
 - Inference validity notes in this repo: [docs/academic_inference_notes.md](/D:/AI/arabic-itsm-server/docs/academic_inference_notes.md)
+- Comparison methodology: [docs/model_comparison_methodology.md](/D:/AI/arabic-itsm-server/docs/model_comparison_methodology.md)
 - Cloud demo deployment guide: [docs/cloud_demo_guide.md](/D:/AI/arabic-itsm-server/docs/cloud_demo_guide.md)
 - Coolify VPS Docker deployment guide: [docs/coolify_deployment_guide.md](/D:/AI/arabic-itsm-server/docs/coolify_deployment_guide.md)
 
@@ -51,10 +52,13 @@ arabic-itsm-server/
 ├── app/
 │   ├── main.py                    # multi-model API + routes
 │   └── classifier.py              # checkpoint inference utilities
+├── scripts/
+│   └── run_model_comparison.py    # offline benchmark + report artifact generator
 ├── static/
 │   ├── models.html                # model catalog
 │   ├── model.html                 # single-model demo page
-│   ├── compare.html               # all-model side-by-side demo
+│   ├── research.html              # article-style model comparison page
+│   ├── reports/                   # generated JSON/CSV/MD artifacts
 │   └── index.html                 # legacy single-page demo
 ├── docs/
 │   └── academic_inference_notes.md
@@ -102,7 +106,7 @@ uvicorn app.main:app --reload
 Open:
 
 - Model catalog: `http://127.0.0.1:8000/models`
-- Combined page: `http://127.0.0.1:8000/compare`
+- Research comparison page: `http://127.0.0.1:8000/research`
 - API docs: `http://127.0.0.1:8000/docs`
 
 ---
@@ -160,10 +164,64 @@ Returns profile/load status and default model id.
 
 1. Go to `/models`
 2. Select a model profile for dedicated demo at `/models/{model_id}`
-3. Or open `/compare` to classify once across all configured models
-4. Compare outputs for academic demos and model selection
+3. Open `/research` for article-style benchmark results and charts
+4. Compare outputs and metrics for academic demos and model selection
 
 This supports your requirement to demo current models (and future models) as separate pages.
+
+---
+
+## Comparative Model Evaluation
+
+Use the offline pipeline to benchmark two local checkpoints on a labeled split and publish artifacts directly to the web UI.
+
+### Run the benchmark
+
+```bash
+python scripts/run_model_comparison.py
+```
+
+Or from the web UI:
+
+- open `http://127.0.0.1:8000/research`
+- click **Run Benchmark**
+- monitor progress and logs directly on the page
+
+### Deployment-safe configuration
+
+The comparison runner is not tied to a local Windows path.  
+The repository includes a committed split at:
+
+- `data/processed/test.csv`
+
+On deployed servers, configure `.env` with:
+
+- `COMPARISON_MODEL_A_ID` / `COMPARISON_MODEL_B_ID` (or explicit `*_PATH`)
+- `COMPARISON_DATASET_CSV=data/processed/test.csv` (default and recommended)
+- `COMPARISON_MODEL_A_URL`, `COMPARISON_MODEL_B_URL`, dataset reference URLs
+
+Optional arguments:
+
+```bash
+python scripts/run_model_comparison.py ^
+  --dataset-csv "data/processed/test.csv" ^
+  --model-a-path "models/marbert_l1_l2_l3_best" ^
+  --model-b-path "models/marbert_multi_task_best" ^
+  --model-a-id "marbert-arabic-itsm-l3-categories" ^
+  --model-b-id "marbert-arabic-itsm-multitask" ^
+  --split-name "test" ^
+  --bootstrap-samples 1000
+```
+
+Generated artifacts (under `static/reports/`):
+
+- `model_comparison_raw_predictions.csv` — ticket-level predictions and confidences.
+- `model_comparison_report.json` — all aggregate metrics, paired tests, chart-ready payloads.
+- `model_comparison_article.md` — auto-generated narrative article text.
+
+Then open:
+
+- `http://127.0.0.1:8000/research`
 
 ---
 

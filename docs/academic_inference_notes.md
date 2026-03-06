@@ -53,3 +53,36 @@ Tasks are discovered from head keys (for example, `l1`, `l2`, `l3`) and rendered
 2. Log `model_id` with every prediction payload.
 3. Avoid replacing checkpoints in-place during experiments; add new folders instead.
 4. Archive screenshots or JSON responses for thesis appendix evidence.
+
+## 4) Offline Benchmark and Article Pipeline
+
+For formal comparative evaluation, use the server-side benchmark script with a fixed labeled split.
+
+### Command
+
+```bash
+python scripts/run_model_comparison.py
+```
+
+Default setup compares:
+
+- `models/marbert_l1_l2_l3_best` (or resolved profile path in `MODEL_DIRS`)
+- `models/marbert_multi_task_best` (or resolved profile path in `MODEL_DIRS`)
+- dataset split: `data/processed/test.csv` (committed in this repo)
+
+### Generated evidence artifacts
+
+The script writes to `static/reports/`:
+
+1. `model_comparison_raw_predictions.csv` (row-level raw evidence)
+2. `model_comparison_report.json` (metrics + paired statistics + chart payload)
+3. `model_comparison_article.md` (narrative article text)
+
+### Web publishing
+
+The page `/research` renders these artifacts directly and provides:
+
+- per-task quality metrics (accuracy, macro-F1, weighted-F1, top-3 hit),
+- latency analysis (mean/p50/p95),
+- paired significance checks (McNemar + bootstrap CI),
+- top confusion patterns for error analysis.

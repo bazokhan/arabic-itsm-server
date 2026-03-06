@@ -7,10 +7,14 @@
   <link rel="stylesheet" href="/static/common.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
-    .section-header { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 1.75rem 0 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .section-header { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 1.75rem 0 0.75rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .section-title-left { display:flex; align-items:center; gap:0.5rem; }
+    .section-actions { display:flex; gap:0.35rem; }
     .section-header:first-of-type { margin-top: 0; }
     .cls-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
     .rerun-link { font-size: 0.8125rem; }
+    .sortable { cursor:pointer; user-select:none; }
+    #clsBody tr:hover td { background: var(--bg-elevated); cursor:pointer; }
   </style>
 </head>
 <body>
@@ -29,6 +33,14 @@
           <i data-lucide="activity" style="width:16px;height:16px;"></i>
           <span data-i18n="nav_monitoring">المراقبة</span>
         </a>
+        <a class="btn nav-link" href="/research">
+          <i data-lucide="flask-conical" style="width:16px;height:16px;"></i>
+          <span data-i18n="nav_research">مقارنة بحثية</span>
+        </a>
+        <button class="btn" id="conceptBtn" type="button">
+          <i data-lucide="circle-help" style="width:14px;height:14px;"></i>
+          <span data-i18n="btn_concepts">المفاهيم</span>
+        </button>
         <button class="btn-lang" id="langBtn" type="button">عر</button>
         <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
           <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
@@ -47,61 +59,99 @@
 
     <!-- Per-day chart -->
     <div class="section-header">
-      <i data-lucide="calendar" style="width:15px;height:15px;"></i>
-      <span data-i18n="section_per_day">التصنيفات خلال آخر 7 أيام</span>
+      <span class="section-title-left">
+        <i data-lucide="calendar" style="width:15px;height:15px;"></i>
+        <span data-i18n="section_per_day">التصنيفات خلال آخر 7 أيام</span>
+      </span>
+      <span class="section-actions">
+        <button class="btn" id="expandDayBtn" type="button"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button>
+      </span>
     </div>
-    <div class="card" style="padding:1.25rem;">
+    <div class="card" style="padding:1.25rem;" id="dayWrap">
       <div class="day-chart" id="dayChart"></div>
       <div id="dayEmpty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_data">لا توجد بيانات بعد</div>
     </div>
 
     <!-- Per-model usage -->
     <div class="section-header">
-      <i data-lucide="cpu" style="width:15px;height:15px;"></i>
-      <span data-i18n="section_by_model">استخدام النماذج</span>
+      <span class="section-title-left">
+        <i data-lucide="cpu" style="width:15px;height:15px;"></i>
+        <span data-i18n="section_by_model">استخدام النماذج</span>
+      </span>
+      <span class="section-actions">
+        <button class="btn" id="expandModelBtn" type="button"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button>
+      </span>
     </div>
-    <div class="card" style="padding:1.25rem;">
+    <div class="card" style="padding:1.25rem;" id="modelWrap">
       <div class="bar-chart" id="modelChart"></div>
       <div id="modelEmpty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_data">لا توجد بيانات بعد</div>
     </div>
 
     <!-- L1 distribution -->
     <div class="section-header">
-      <i data-lucide="tag" style="width:15px;height:15px;"></i>
-      <span data-i18n="section_by_l1">توزيع الفئات الرئيسية (L1)</span>
+      <span class="section-title-left">
+        <i data-lucide="tag" style="width:15px;height:15px;"></i>
+        <span data-i18n="section_by_l1">توزيع الفئات الرئيسية (L1)</span>
+      </span>
+      <span class="section-actions">
+        <button class="btn" id="expandL1Btn" type="button"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button>
+      </span>
     </div>
-    <div class="card" style="padding:1.25rem;">
+    <div class="card" style="padding:1.25rem;" id="l1Wrap">
       <div class="bar-chart" id="l1Chart"></div>
       <div id="l1Empty" class="hidden" style="color:var(--text-muted);font-size:0.875rem;text-align:center;padding:1rem 0;" data-i18n="no_data">لا توجد بيانات بعد</div>
     </div>
 
     <!-- Recent classifications -->
     <div class="section-header" style="justify-content: space-between;">
-      <span style="display:flex;align-items:center;gap:0.5rem;">
+      <span class="section-title-left">
         <i data-lucide="clock" style="width:15px;height:15px;"></i>
         <span data-i18n="section_recent">آخر التصنيفات</span>
       </span>
-      <a class="btn" href="/admin/export" style="font-size:0.8125rem;padding:0.35rem 0.75rem;">
-        <i data-lucide="download" style="width:14px;height:14px;"></i>
-        <span data-i18n="btn_export">تصدير</span>
-      </a>
+      <span class="section-actions">
+        <button class="btn" id="expandTableBtn" type="button"><i data-lucide="maximize-2" style="width:13px;height:13px;"></i></button>
+        <a class="btn" href="/admin/export" style="font-size:0.8125rem;padding:0.35rem 0.75rem;">
+          <i data-lucide="download" style="width:14px;height:14px;"></i>
+          <span data-i18n="btn_export">تصدير</span>
+        </a>
+      </span>
     </div>
-    <div class="cls-table-wrap card" style="padding:0;">
+    <div class="cls-table-wrap card" style="padding:0;" id="tableWrap">
       <table class="cls-table">
         <thead>
           <tr>
-            <th data-i18n="col_time">الوقت</th>
-            <th data-i18n="col_title">العنوان</th>
-            <th data-i18n="col_model">النموذج</th>
-            <th data-i18n="col_l1">L1</th>
-            <th data-i18n="col_conf">الثقة</th>
-            <th data-i18n="col_api_ms">وقت API</th>
+            <th class="sortable" data-sort="created_at" data-i18n="col_time">الوقت</th>
+            <th class="sortable" data-sort="ticket_title" data-i18n="col_title">العنوان</th>
+            <th class="sortable" data-sort="model_id" data-i18n="col_model">النموذج</th>
+            <th class="sortable" data-sort="l1_label" data-i18n="col_l1">L1</th>
+            <th class="sortable" data-sort="l1_conf" data-i18n="col_conf">الثقة</th>
+            <th class="sortable" data-sort="api_time_ms" data-i18n="col_api_ms">وقت API</th>
             <th data-i18n="col_actions">إجراءات</th>
           </tr>
         </thead>
         <tbody id="clsBody"></tbody>
       </table>
       <div id="clsEmpty" class="hidden" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.875rem;" data-i18n="no_cls">لا توجد تصنيفات بعد — جرّب نموذجاً من <a href="/models">الكتالوج</a></div>
+    </div>
+
+    <div class="modal-overlay" id="detailModal">
+      <div class="modal-box" style="max-width:860px;max-height:88vh;overflow:auto;">
+        <button class="modal-close" id="detailCloseBtn">✕</button>
+        <div id="detailBody"></div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="conceptModal">
+      <div class="modal-box">
+        <button class="modal-close" id="conceptCloseBtn">✕</button>
+        <p class="modal-title" data-i18n="concept_title">مفاهيم سريعة</p>
+        <div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.62;">
+          <p><strong>Confidence:</strong> the model certainty for the predicted class.</p>
+          <p><strong>API Time:</strong> total server response time including request handling.</p>
+          <p><strong>Inference Time:</strong> model forward pass time only.</p>
+          <p><strong>L1:</strong> top-level support domain category.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Feedback modal (same structure as model.html) -->
@@ -143,7 +193,8 @@
     const T = {
       ar: {
         page_title: 'لوحة البيانات', page_sub: 'إحصائيات وسجل التصنيفات',
-        nav_catalog: 'الكتالوج', nav_monitoring: 'المراقبة',
+        nav_catalog: 'الكتالوج', nav_monitoring: 'المراقبة', nav_research: 'مقارنة بحثية',
+        btn_concepts: 'المفاهيم',
         stat_total_cls: 'إجمالي التصنيفات', stat_total_fb: 'إجمالي التقييمات',
         stat_thumbs_up: 'نسبة الإعجاب 👍', stat_avg_inf: 'متوسط وقت الاستدلال',
         section_per_day: 'التصنيفات خلال آخر 7 أيام',
@@ -159,10 +210,12 @@
         fb_email: 'بريدك الإلكتروني (اختياري)', fb_email_ph: 'للتواصل معك إذا احتجنا تفاصيل',
         fb_submit: 'إرسال', fb_skip: 'تخطي',
         fb_thanks_title: 'شكراً!', fb_err_select: 'يرجى اختيار 👍 أو 👎',
+        concept_title: 'مفاهيم سريعة',
       },
       en: {
         page_title: 'Dashboard', page_sub: 'Stats and classification history',
-        nav_catalog: 'Catalog', nav_monitoring: 'Monitoring',
+        nav_catalog: 'Catalog', nav_monitoring: 'Monitoring', nav_research: 'Research',
+        btn_concepts: 'Concepts',
         stat_total_cls: 'Total Classifications', stat_total_fb: 'Total Feedback',
         stat_thumbs_up: 'Thumbs Up Rate 👍', stat_avg_inf: 'Avg Inference Time',
         section_per_day: 'Classifications – Last 7 Days',
@@ -178,6 +231,7 @@
         fb_email: 'Your email (optional)', fb_email_ph: 'So we can follow up if needed',
         fb_submit: 'Submit', fb_skip: 'Skip',
         fb_thanks_title: 'Thank you!', fb_err_select: 'Please select 👍 or 👎 first',
+        concept_title: 'Quick Concepts',
       }
     };
 
@@ -293,20 +347,47 @@
     }
 
     // ── Classifications table ───────────────────────────────────────────────────
-    async function loadClassifications() {
-      const res = await fetch('/api/classifications?limit=20&offset=0');
-      const data = await res.json();
-      const items = data.items || [];
+    let clsRows = [];
+    let clsSort = { key: 'created_at', dir: 'desc' };
+
+    function sortClassifications(rows) {
+      const out = [...rows];
+      out.sort((a, b) => {
+        let av = a[clsSort.key];
+        let bv = b[clsSort.key];
+        if (clsSort.key === 'l1_label') {
+          av = ((a.model_response || {}).l1 || {}).label || '';
+          bv = ((b.model_response || {}).l1 || {}).label || '';
+        } else if (clsSort.key === 'l1_conf') {
+          av = Number((((a.model_response || {}).l1 || {}).confidence) || 0);
+          bv = Number((((b.model_response || {}).l1 || {}).confidence) || 0);
+        } else if (clsSort.key === 'api_time_ms') {
+          av = Number(a.api_time_ms || 0);
+          bv = Number(b.api_time_ms || 0);
+        } else if (clsSort.key === 'created_at') {
+          av = Date.parse(a.created_at || 0);
+          bv = Date.parse(b.created_at || 0);
+        } else {
+          av = String(av || '');
+          bv = String(bv || '');
+        }
+        if (typeof av === 'number' && typeof bv === 'number') {
+          return clsSort.dir === 'asc' ? av - bv : bv - av;
+        }
+        return clsSort.dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      });
+      return out;
+    }
+
+    function renderClassifications(items) {
       const tbody = document.getElementById('clsBody');
       const emptyEl = document.getElementById('clsEmpty');
-
       if (!items.length) {
         tbody.innerHTML = '';
         emptyEl.classList.remove('hidden');
         return;
       }
       emptyEl.classList.add('hidden');
-
       tbody.innerHTML = items.map(row => {
         const resp = row.model_response || {};
         const l1 = resp.l1 || {};
@@ -318,7 +399,7 @@
         const descEnc = encodeURIComponent(row.ticket_text || '');
         const rerunUrl = `/models/${modelId}?prefill_title=${titleEnc}&prefill_desc=${descEnc}`;
         return `
-          <tr>
+          <tr data-row-id="${row.id}">
             <td style="white-space:nowrap;font-size:0.75rem;color:var(--text-muted);">${timeStr}</td>
             <td class="title-cell" title="${row.ticket_title || ''}">${titleShort}</td>
             <td style="font-family:monospace;font-size:0.75rem;">${row.model_id || '—'}</td>
@@ -328,12 +409,48 @@
             <td>
               <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
                 <a class="btn rerun-link" href="${rerunUrl}" title="${t('btn_rerun')}">↻</a>
-                <button class="btn" data-cls-id="${row.id}" onclick="openFbModal(${row.id})" title="${t('btn_feedback')}">💬</button>
+                <button class="btn feedback-btn" data-cls-id="${row.id}" title="${t('btn_feedback')}">💬</button>
               </div>
             </td>
           </tr>
         `;
       }).join('');
+      document.querySelectorAll('#clsBody tr').forEach(tr => {
+        tr.addEventListener('click', () => {
+          const id = Number(tr.dataset.rowId);
+          const row = clsRows.find(x => x.id === id);
+          if (!row) return;
+          openDetailModal(row);
+        });
+      });
+      document.querySelectorAll('.feedback-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const clsId = Number(btn.dataset.clsId);
+          openFbModal(clsId);
+        });
+      });
+    }
+
+    function openDetailModal(row) {
+      const resp = row.model_response || {};
+      const html = `
+        <p class="modal-title">Classification #${row.id}</p>
+        <p class="modal-sub">${row.created_at || '—'} · <span class="mono">${row.model_id || '—'}</span></p>
+        <div class="form-group"><label class="form-label">Title</label><div>${row.ticket_title || ''}</div></div>
+        <div class="form-group"><label class="form-label">Description</label><div>${row.ticket_text || ''}</div></div>
+        <div class="form-group"><label class="form-label">Timing</label><div>API: ${row.api_time_ms || '—'} ms · Inference: ${row.inference_time_ms || '—'} ms</div></div>
+        <div class="form-group"><label class="form-label">Model Output</label><pre style="white-space:pre-wrap;font-size:0.78rem;background:var(--bg-elevated);padding:0.7rem;border:1px solid var(--border);border-radius:8px;">${JSON.stringify(resp, null, 2)}</pre></div>
+      `;
+      document.getElementById('detailBody').innerHTML = html;
+      document.getElementById('detailModal').classList.add('open');
+    }
+
+    async function loadClassifications() {
+      const res = await fetch('/api/classifications?limit=20&offset=0');
+      const data = await res.json();
+      clsRows = data.items || [];
+      renderClassifications(sortClassifications(clsRows));
     }
 
     // ── Feedback modal ──────────────────────────────────────────────────────────
@@ -396,6 +513,34 @@
       } catch(err) {
         fbErr.style.display='block'; fbErr.textContent=err.message;
       }
+    });
+
+    // ── Modals and interactivity ────────────────────────────────────────────────
+    document.getElementById('detailCloseBtn').addEventListener('click', () => document.getElementById('detailModal').classList.remove('open'));
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('detailModal')) document.getElementById('detailModal').classList.remove('open');
+    });
+    document.getElementById('conceptBtn').addEventListener('click', () => document.getElementById('conceptModal').classList.add('open'));
+    document.getElementById('conceptCloseBtn').addEventListener('click', () => document.getElementById('conceptModal').classList.remove('open'));
+    document.getElementById('conceptModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('conceptModal')) document.getElementById('conceptModal').classList.remove('open');
+    });
+
+    function openMaximized(title, html) {
+      document.getElementById('detailBody').innerHTML = `<p class="modal-title">${title}</p>${html}`;
+      document.getElementById('detailModal').classList.add('open');
+    }
+    document.getElementById('expandDayBtn').addEventListener('click', () => openMaximized('Last 7 Days', document.getElementById('dayWrap').innerHTML));
+    document.getElementById('expandModelBtn').addEventListener('click', () => openMaximized('Model Usage', document.getElementById('modelWrap').innerHTML));
+    document.getElementById('expandL1Btn').addEventListener('click', () => openMaximized('L1 Distribution', document.getElementById('l1Wrap').innerHTML));
+    document.getElementById('expandTableBtn').addEventListener('click', () => openMaximized('Recent Classifications', document.getElementById('tableWrap').innerHTML));
+
+    document.querySelectorAll('.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort;
+        clsSort = { key, dir: (clsSort.key === key && clsSort.dir === 'asc') ? 'desc' : 'asc' };
+        renderClassifications(sortClassifications(clsRows));
+      });
     });
 
     // ── Init ────────────────────────────────────────────────────────────────────

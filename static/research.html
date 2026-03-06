@@ -28,8 +28,8 @@
     .bar-comp { display:flex; flex-direction:column; gap:0.55rem; }
     .bar-comp-row { display:grid; grid-template-columns:120px 1fr 1fr; gap:0.5rem; align-items:center; font-size:0.81rem; }
     .bar-track { height:8px; border-radius:999px; background:var(--border); overflow:hidden; }
-    .bar-a { height:100%; background:#2563eb; }
-    .bar-b { height:100%; background:#16a34a; }
+    .bar-a { height:100%; background:var(--accent); border-radius:var(--chart-radius); }
+    .bar-b { height:100%; background:#16a34a; border-radius:var(--chart-radius); }
     .bar-val { font-size:0.72rem; color:var(--text-muted); margin-top:0.14rem; text-align:right; }
     .muted { color:var(--text-muted); font-size:0.84rem; }
     .artifact-links { display:flex; gap:0.5rem; flex-wrap:wrap; }
@@ -180,6 +180,10 @@
     byId('expandChartsBtn').onclick=()=>openModal(`<p class="modal-title">Charts</p>${byId('chartsWrap').outerHTML}`);
 
     (async()=>{document.querySelector('.icon-dark').classList.toggle('hidden',document.documentElement.getAttribute('data-theme')==='dark');document.querySelector('.icon-light').classList.toggle('hidden',document.documentElement.getAttribute('data-theme')==='light');await refreshAll();await pollRunner();lucide.createIcons();})();
+  </script>
+  <script type="module">
+    import { initAppShell } from '/static/js/shell.js';
+    initAppShell();
   </script>
 </body>
 </html>

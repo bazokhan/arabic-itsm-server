@@ -26,6 +26,12 @@
   --radius-sm: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #cbd5e1;
+  --sidebar-muted: #94a3b8;
+  --sidebar-active: rgba(255, 255, 255, 0.12);
+  --chart-radius: 999px;
+  --chart-bg: var(--accent);
 }
 
 [data-theme="dark"] {
@@ -49,6 +55,34 @@
   --info-text: #7dd3fc;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --sidebar-bg: #020617;
+  --sidebar-text: #cbd5e1;
+  --sidebar-muted: #64748b;
+  --sidebar-active: rgba(148, 163, 184, 0.2);
+  --chart-bg: var(--accent);
+}
+
+[data-palette="teal"] {
+  --accent: #0f766e;
+  --accent-hover: #0d9488;
+}
+
+[data-palette="violet"] {
+  --accent: #6d28d9;
+  --accent-hover: #7c3aed;
+}
+
+[data-palette="amber"] {
+  --accent: #b45309;
+  --accent-hover: #d97706;
+}
+
+[data-chart-style="sharp"] {
+  --chart-radius: 2px;
+}
+
+[data-chart-style="soft"] {
+  --chart-radius: 6px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -62,6 +96,137 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-shell.collapsed {
+  grid-template-columns: 82px 1fr;
+}
+
+.app-sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-inline-end: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.app-sidebar-head {
+  padding: 0.4rem 0.45rem 0.7rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.app-sidebar-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.app-sidebar-sub {
+  font-size: 0.76rem;
+  color: var(--sidebar-muted);
+  margin-top: 0.2rem;
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.app-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 8px;
+  padding: 0.55rem 0.6rem;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: 0.86rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-nav-item:hover {
+  background: var(--sidebar-active);
+}
+
+.app-nav-item.active {
+  background: var(--sidebar-active);
+  color: #fff;
+}
+
+.shell-controls {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.shell-label {
+  font-size: 0.72rem;
+  color: var(--sidebar-muted);
+  margin-top: 0.25rem;
+}
+
+.shell-select {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.4);
+  color: var(--sidebar-text);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.app-main {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.shell-mobile-toggle {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 260;
+  display: none;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  box-shadow: var(--shadow-md);
+}
+
+[dir="rtl"] .shell-mobile-toggle {
+  right: auto;
+  left: 1rem;
+}
+
+.app-shell .header-actions .nav-link {
+  display: none;
+}
+
+.app-shell .header-actions #themeBtn {
+  display: none;
+}
+
+.app-shell.collapsed .app-sidebar-title,
+.app-shell.collapsed .app-sidebar-sub,
+.app-shell.collapsed .app-nav-item span,
+.app-shell.collapsed .shell-controls span,
+.app-shell.collapsed .shell-label,
+.app-shell.collapsed .shell-select {
+  display: none;
+}
+
 /* Layout */
 .page {
   max-width: 720px;
@@ -70,9 +235,10 @@ body {
 }
 
 .page-wide {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 1.25rem 1.25rem 2.25rem;
 }
 
 /* Header */
@@ -290,8 +456,8 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
+  background: var(--chart-bg);
+  border-radius: var(--chart-radius);
   width: 0%;
   transition: width 0.3s ease;
 }
@@ -485,13 +651,13 @@ body {
 .bar-label { min-width: 100px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); text-align: right; }
 [dir="rtl"] .bar-label { text-align: left; }
 .bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.4s ease; }
+.bar-fill { height: 100%; background: var(--chart-bg); border-radius: var(--chart-radius); transition: width 0.4s ease; }
 .bar-count { min-width: 28px; text-align: left; color: var(--text-muted); font-size: 0.75rem; }
 
 /* ── Day chart (vertical CSS bars) ───────────────────────────────────────────── */
 .day-chart { display: flex; align-items: flex-end; gap: 0.5rem; height: 80px; padding-bottom: 1.25rem; position: relative; }
 .day-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; flex: 1; height: 100%; justify-content: flex-end; }
-.day-bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.4s ease; }
+.day-bar { width: 100%; background: var(--chart-bg); border-radius: var(--chart-radius); min-height: 2px; transition: height 0.4s ease; }
 .day-label { font-size: 0.65rem; color: var(--text-muted); text-align: center; }
 
 /* ── Recent classifications table ─────────────────────────────────────────────── */
@@ -502,6 +668,58 @@ body {
 .cls-table tr:last-child td { border-bottom: none; }
 .cls-table tr:hover td { background: var(--bg-elevated); }
 .title-cell { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.cls-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 260px;
+    z-index: 250;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-md);
+  }
+
+  [dir="rtl"] .app-sidebar {
+    left: auto;
+    right: 0;
+    transform: translateX(105%);
+  }
+
+  .app-shell.mobile-open .app-sidebar {
+    transform: translateX(0);
+  }
+
+  .app-shell.mobile-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 240;
+  }
+
+  .shell-mobile-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-wide {
+    padding: 0.95rem 0.85rem 1.6rem;
+  }
+}
 
 /* ── Monitoring gauges ────────────────────────────────────────────────────────── */
 .gauge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.875rem; margin-bottom: 1.5rem; }

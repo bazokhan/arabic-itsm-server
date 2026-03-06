@@ -6,23 +6,70 @@
   <title>Data Export — Arabic ITSM</title>
   <link rel="stylesheet" href="/static/common.css">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 0.9rem;
+    }
+    .export-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .export-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .export-title {
+      font-weight: 600;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .export-desc {
+      color: var(--text-muted);
+      font-size: 0.83rem;
+      line-height: 1.55;
+    }
+    .export-actions {
+      display: flex;
+      gap: 0.45rem;
+      margin-top: auto;
+      flex-wrap: wrap;
+    }
+    .section-kicker {
+      margin: 0 0 0.7rem;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .tiny {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+  </style>
 </head>
 <body>
-  <div class="page" style="padding-top: 2rem;">
+  <div class="page-wide" style="padding-top: 1.25rem;">
     <header class="header">
       <div class="header-brand">
         <h1 data-i18n="page_title">تصدير البيانات ونسخ احتياطية</h1>
         <p style="color:var(--text-muted);font-size:0.8125rem;" data-i18n="page_sub">حمّل قاعدة بيانات التصنيفات والتقييمات</p>
       </div>
       <div class="header-actions">
-        <a class="btn nav-link" href="/dashboard">
-          <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
-          <span data-i18n="nav_dashboard">لوحة البيانات</span>
-        </a>
-        <a class="btn nav-link" href="/models">
-          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
-          <span data-i18n="nav_catalog">الكتالوج</span>
-        </a>
         <button class="btn-lang" id="langBtn" type="button">عر</button>
         <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
           <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
@@ -39,46 +86,25 @@
       <strong id="statFb">—</strong>
     </div>
 
-    <!-- CSV export -->
-    <a class="export-btn" href="/api/export/csv" download>
-      <span class="export-icon">📊</span>
-      <div style="flex:1;">
-        <div data-i18n="csv_title">تصدير CSV (ملف مضغوط ZIP)</div>
-        <div class="export-desc" data-i18n="csv_desc">جميع التصنيفات والتقييمات في جدول Excel-متوافق — بترميز UTF-8 BOM للعربية</div>
-      </div>
-      <i data-lucide="download" style="width:20px;height:20px;flex-shrink:0;"></i>
-    </a>
+    <div class="section-kicker">
+      <i data-lucide="database" style="width:14px;height:14px;"></i>
+      <span data-i18n="db_exports_title">Database Exports</span>
+    </div>
+    <div class="export-grid" id="dbGrid"></div>
 
-    <!-- SQL export -->
-    <a class="export-btn" href="/api/export/sql" download>
-      <span class="export-icon">🗄️</span>
-      <div style="flex:1;">
-        <div data-i18n="sql_title">تصدير SQL (نسخة احتياطية كاملة)</div>
-        <div class="export-desc" data-i18n="sql_desc">نسخة كاملة من قاعدة البيانات بصيغة SQL — يمكن استعادتها على أي خادم SQLite</div>
-      </div>
-      <i data-lucide="download" style="width:20px;height:20px;flex-shrink:0;"></i>
-    </a>
+    <div class="section-kicker" style="margin-top:1.1rem;">
+      <i data-lucide="flask-conical" style="width:14px;height:14px;"></i>
+      <span data-i18n="research_exports_title">Comparison Artifacts</span>
+    </div>
+    <div class="export-grid" id="cmpGrid"></div>
+    <div class="tiny" style="margin-top:0.8rem;" data-i18n="artifact_note">Need fresh comparison artifacts? Re-run from the research page.</div>
+  </div>
 
-    <!-- Info card -->
-    <div class="card" style="margin-top:1.5rem;">
-      <p style="font-weight:600;margin-bottom:0.75rem;" data-i18n="info_title">ماذا يحتوي كل ملف؟</p>
-
-      <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:500;" data-i18n="csv_what_title">📊 ملف CSV يحتوي على:</p>
-      <ul style="font-size:0.875rem;color:var(--text-muted);padding-right:1.25rem;line-height:1.8;margin-bottom:1rem;" data-i18n-list="csv_cols">
-        <li>معرف التصنيف وتاريخ الطلب</li>
-        <li>عنوان التذكرة ونصها</li>
-        <li>النموذج المستخدم</li>
-        <li>نتائج L1 / L2 / L3 مع نسبة الثقة</li>
-        <li>وقت API ووقت الاستدلال</li>
-        <li>تقييم المستخدم (إعجاب / عدم إعجاب، تعليق، بريد)</li>
-      </ul>
-
-      <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:500;" data-i18n="sql_what_title">🗄️ ملف SQL يحتوي على:</p>
-      <ul style="font-size:0.875rem;color:var(--text-muted);padding-right:1.25rem;line-height:1.8;" data-i18n-list="sql_cols">
-        <li>جميع الجداول (التصنيفات، التقييمات، سجل المراقبة، الزوار)</li>
-        <li>البيانات والفهارس والمخططات</li>
-        <li>صالح للاستعادة بـ: sqlite3 itsm_restored.db &lt; itsm_backup.sql</li>
-      </ul>
+  <div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width:680px;">
+      <button class="modal-close" id="infoCloseBtn" type="button">✕</button>
+      <p class="modal-title" id="infoTitle">Info</p>
+      <div id="infoBody" style="font-size:0.88rem;color:var(--text-secondary);line-height:1.65;"></div>
     </div>
   </div>
 
@@ -89,27 +115,63 @@
         page_title: 'تصدير البيانات ونسخ احتياطية',
         page_sub: 'حمّل قاعدة بيانات التصنيفات والتقييمات',
         nav_dashboard: 'لوحة البيانات', nav_catalog: 'الكتالوج',
+        db_exports_title: 'تصدير قاعدة البيانات',
+        research_exports_title: 'ملفات المقارنة',
         stats_label: 'إجمالي التصنيفات:', stats_fb_label: 'التقييمات:',
-        csv_title: 'تصدير CSV (ملف مضغوط ZIP)',
+        csv_title: 'CSV (ZIP)',
         csv_desc: 'جميع التصنيفات والتقييمات في جدول Excel-متوافق — بترميز UTF-8 BOM للعربية',
-        sql_title: 'تصدير SQL (نسخة احتياطية كاملة)',
+        sql_title: 'SQL (نسخة كاملة)',
         sql_desc: 'نسخة كاملة من قاعدة البيانات بصيغة SQL — يمكن استعادتها على أي خادم SQLite',
-        info_title: 'ماذا يحتوي كل ملف؟',
-        csv_what_title: '📊 ملف CSV يحتوي على:',
-        sql_what_title: '🗄️ ملف SQL يحتوي على:',
+        report_json_title: 'تقرير المقارنة JSON',
+        report_json_desc: 'مقاييس مجمعة، اختبارات زوجية، ملخصات الالتباس وبيانات الرسوم',
+        report_csv_title: 'CSV المقارنة الخام',
+        report_csv_desc: 'تنبؤات صفّية مع الحقيقة المرجعية لكلا النموذجين',
+        report_md_title: 'المقال بصيغة Markdown',
+        report_md_desc: 'نص التقرير السردي الناتج من آخر تشغيل مقارنة',
+        artifact_note: 'تحتاج تحديث ملفات المقارنة؟ أعد التشغيل من صفحة البحث.',
+        btn_download: 'تنزيل',
+        btn_info: 'معلومات',
+        info_csv_title: 'تفاصيل CSV',
+        info_csv_body: '<ul><li>كل سجلات التصنيف مع النموذج والنتائج</li><li>تفريغ L1/L2/L3 والثقة داخل الأعمدة</li><li>بيانات التقييم إن وجدت</li><li>ترميز UTF-8 BOM لعرض العربية في Excel</li></ul>',
+        info_sql_title: 'تفاصيل SQL',
+        info_sql_body: '<ul><li>نسخة كاملة من قاعدة SQLite</li><li>تشمل الجداول والفهارس والبيانات</li><li>استعادة: sqlite3 itsm_restored.db &lt; itsm_backup.sql</li></ul>',
+        info_report_title: 'تفاصيل تقرير المقارنة JSON',
+        info_report_body: '<ul><li>المقاييس المجمعة لكل مهمة</li><li>الاختبارات الزوجية (McNemar + CI)</li><li>ملخصات الالتباس وبيانات الرسوم</li></ul>',
+        info_raw_title: 'تفاصيل CSV المقارنة الخام',
+        info_raw_body: '<ul><li>صف لكل تذكرة في مجموعة الاختبار</li><li>الحقيقة المرجعية + تنبؤات النموذجين</li><li>الثقة والبدائل العليا والكمون</li></ul>',
+        info_md_title: 'تفاصيل ملف المقال',
+        info_md_body: '<ul><li>نص المقال الناتج تلقائياً من نتائج آخر تشغيل</li><li>يستخدمه عرض صفحة Research مباشرة</li></ul>',
       },
       en: {
         page_title: 'Export Data & Backups',
         page_sub: 'Download the classifications and feedback database',
         nav_dashboard: 'Dashboard', nav_catalog: 'Catalog',
+        db_exports_title: 'Database Exports',
+        research_exports_title: 'Comparison Artifacts',
         stats_label: 'Total Classifications:', stats_fb_label: 'Feedback:',
-        csv_title: 'Export CSV (ZIP file)',
+        csv_title: 'CSV (ZIP)',
         csv_desc: 'All classifications and feedback as an Excel-compatible table — UTF-8 BOM encoding for Arabic text',
-        sql_title: 'Export SQL (Full Backup)',
+        sql_title: 'SQL (Full Backup)',
         sql_desc: 'Full database dump in SQL format — can be restored on any SQLite server',
-        info_title: "What's in each file?",
-        csv_what_title: '📊 CSV file contains:',
-        sql_what_title: '🗄️ SQL file contains:',
+        report_json_title: 'Comparison report JSON',
+        report_json_desc: 'Aggregated metrics, paired tests, confusion summaries, and chart payloads',
+        report_csv_title: 'Raw comparison CSV',
+        report_csv_desc: 'Ticket-level ground truth and predictions for the two compared models',
+        report_md_title: 'Article markdown',
+        report_md_desc: 'Narrative write-up generated from the latest comparison run',
+        artifact_note: 'Need fresh comparison artifacts? Re-run from the research page.',
+        btn_download: 'Download',
+        btn_info: 'Info',
+        info_csv_title: 'CSV details',
+        info_csv_body: '<ul><li>All classification records with model and outputs</li><li>Flattened L1/L2/L3 confidence columns</li><li>Feedback data when available</li><li>UTF-8 BOM for Arabic-safe Excel open</li></ul>',
+        info_sql_title: 'SQL details',
+        info_sql_body: '<ul><li>Full SQLite dump</li><li>Includes schema, indexes, and rows</li><li>Restore: sqlite3 itsm_restored.db &lt; itsm_backup.sql</li></ul>',
+        info_report_title: 'Comparison report JSON details',
+        info_report_body: '<ul><li>Aggregated metrics per task</li><li>Paired tests (McNemar + CI)</li><li>Confusion summaries and chart payloads</li></ul>',
+        info_raw_title: 'Raw comparison CSV details',
+        info_raw_body: '<ul><li>One row per test ticket</li><li>Ground truth + both model predictions</li><li>Confidence, top alternatives, and latency</li></ul>',
+        info_md_title: 'Article markdown details',
+        info_md_body: '<ul><li>Narrative article text from latest run</li><li>Used directly by the Research page view</li></ul>',
       }
     };
 
@@ -125,16 +187,112 @@
       });
     }
 
+    const DB_EXPORTS = [
+      {
+        icon: 'file-spreadsheet',
+        titleKey: 'csv_title',
+        descKey: 'csv_desc',
+        href: '/api/export/csv',
+        infoTitleKey: 'info_csv_title',
+        infoBodyKey: 'info_csv_body',
+      },
+      {
+        icon: 'database',
+        titleKey: 'sql_title',
+        descKey: 'sql_desc',
+        href: '/api/export/sql',
+        infoTitleKey: 'info_sql_title',
+        infoBodyKey: 'info_sql_body',
+      },
+    ];
+
+    const CMP_EXPORTS = [
+      {
+        icon: 'file-json',
+        titleKey: 'report_json_title',
+        descKey: 'report_json_desc',
+        href: '/static/reports/model_comparison_report.json',
+        infoTitleKey: 'info_report_title',
+        infoBodyKey: 'info_report_body',
+      },
+      {
+        icon: 'file-spreadsheet',
+        titleKey: 'report_csv_title',
+        descKey: 'report_csv_desc',
+        href: '/static/reports/model_comparison_raw_predictions.csv',
+        infoTitleKey: 'info_raw_title',
+        infoBodyKey: 'info_raw_body',
+      },
+      {
+        icon: 'file-text',
+        titleKey: 'report_md_title',
+        descKey: 'report_md_desc',
+        href: '/static/reports/model_comparison_article.md',
+        infoTitleKey: 'info_md_title',
+        infoBodyKey: 'info_md_body',
+      },
+    ];
+
+    function openInfoModal(title, htmlBody) {
+      document.getElementById('infoTitle').textContent = title;
+      document.getElementById('infoBody').innerHTML = htmlBody;
+      document.getElementById('infoModal').classList.add('open');
+    }
+
+    function closeInfoModal() {
+      document.getElementById('infoModal').classList.remove('open');
+    }
+
+    function renderExportGrid(targetId, items) {
+      const root = document.getElementById(targetId);
+      root.innerHTML = items.map((item, idx) => `
+        <article class="export-tile">
+          <div class="export-head">
+            <div class="export-title">
+              <i data-lucide="${item.icon}" style="width:16px;height:16px;"></i>
+              <span>${T[LANG][item.titleKey]}</span>
+            </div>
+            <button class="btn" type="button" data-info-idx="${idx}" data-grid="${targetId}" style="padding:0.3rem 0.5rem;font-size:0.75rem;">
+              <i data-lucide="circle-help" style="width:13px;height:13px;"></i>
+              <span>${T[LANG].btn_info}</span>
+            </button>
+          </div>
+          <div class="export-desc">${T[LANG][item.descKey]}</div>
+          <div class="export-actions">
+            <a class="btn btn-primary" href="${item.href}" target="_blank" rel="noopener noreferrer">
+              <i data-lucide="download" style="width:14px;height:14px;"></i>
+              <span>${T[LANG].btn_download}</span>
+            </a>
+          </div>
+        </article>
+      `).join('');
+
+      root.querySelectorAll('[data-info-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const list = btn.dataset.grid === 'dbGrid' ? DB_EXPORTS : CMP_EXPORTS;
+          const item = list[Number(btn.dataset.infoIdx)];
+          openInfoModal(T[LANG][item.infoTitleKey], T[LANG][item.infoBodyKey]);
+        });
+      });
+    }
+
+    function renderAll() {
+      renderExportGrid('dbGrid', DB_EXPORTS);
+      renderExportGrid('cmpGrid', CMP_EXPORTS);
+      lucide.createIcons();
+    }
+
     (function() {
       document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
       applyLang();
+      renderAll();
     })();
 
     document.getElementById('langBtn').addEventListener('click', () => {
       LANG = LANG === 'ar' ? 'en' : 'ar';
       localStorage.setItem('lang', LANG);
       applyLang();
-      lucide.createIcons();
+      renderAll();
     });
 
     document.getElementById('themeBtn').addEventListener('click', () => {
@@ -157,6 +315,15 @@
 
     document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
     document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
+
+    document.getElementById('infoCloseBtn').addEventListener('click', closeInfoModal);
+    document.getElementById('infoModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('infoModal')) closeInfoModal();
+    });
+  </script>
+  <script type="module">
+    import { initAppShell } from '/static/js/shell.js';
+    initAppShell();
   </script>
 </body>
 </html>

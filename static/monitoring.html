@@ -242,5 +242,9 @@
     document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
     document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
   </script>
+  <script type="module">
+    import { initAppShell } from '/static/js/shell.js';
+    initAppShell();
+  </script>
 </body>
 </html>

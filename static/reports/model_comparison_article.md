@@ -1,13 +1,17 @@
 # Comparative Evaluation of Arabic ITSM Classifiers
 
 ## Abstract
-This report compares two MARBERT-based Arabic ITSM checkpoints on a fixed labeled split (1433 tickets), evaluating hierarchical classification quality and inference latency. The analysis follows a fixed offline protocol and includes paired statistical tests.
+This report compares two Arabic ITSM classification checkpoints on a fixed labeled split (1433 tickets), evaluating hierarchical classification quality and inference latency. The analysis follows a fixed offline protocol and includes paired statistical tests.
 
 ## Sources
 - Dataset (Hugging Face): https://huggingface.co/datasets/albaz2000/arabic-itsm-dataset
 - Evaluated dataset reference: https://huggingface.co/datasets/albaz2000/arabic-itsm-dataset
-- Model A page: https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories
-- Model B page: https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask
+- Model A page: https://huggingface.co/marbert-l1l2l3
+- Model B page: https://huggingface.co/arabert-l1l2l3
+
+## Model Mapping
+- Model A (`A`): `marbert-l1l2l3`
+- Model B (`B`): `arabert-l1l2l3`
 
 ## Experimental Setup
 - Evaluated split file: `data/processed/test.csv`
@@ -18,9 +22,15 @@ This report compares two MARBERT-based Arabic ITSM checkpoints on a fixed labele
 - Statistical checks: McNemar test and paired bootstrap CI for accuracy deltas
 
 ## Core Results
-- **L1**: marbert-arabic-itsm-l3-categories macro-F1=0.8838, acc=0.8870; marbert-arabic-itsm-multitask macro-F1=0.8819, acc=0.8870.
-- **L2**: marbert-arabic-itsm-l3-categories macro-F1=0.8705, acc=0.8730; marbert-arabic-itsm-multitask macro-F1=0.8748, acc=0.8765.
-- **L3**: marbert-arabic-itsm-l3-categories macro-F1=0.7752, acc=0.7823; marbert-arabic-itsm-multitask macro-F1=0.7451, acc=0.7530.
+- **L1**: marbert-l1l2l3 macro-F1=0.8838, acc=0.8870; arabert-l1l2l3 macro-F1=0.8883, acc=0.8918.
+- **L2**: marbert-l1l2l3 macro-F1=0.8705, acc=0.8730; arabert-l1l2l3 macro-F1=0.8733, acc=0.8751.
+- **L3**: marbert-l1l2l3 macro-F1=0.7752, acc=0.7823; arabert-l1l2l3 macro-F1=0.8006, acc=0.8067.
+
+## Statistical Significance (Accuracy, paired tests)
+- Decision rule: p < 0.05 is treated as statistically significant.
+- **L1**: Acc Δ(A-B)=-0.0049, 95% CI=[-0.0126, 0.0021], p=0.265205 (not significant; arabert-l1l2l3 better; CI crosses 0).
+- **L2**: Acc Δ(A-B)=-0.0021, 95% CI=[-0.0077, 0.0042], p=0.662521 (not significant; arabert-l1l2l3 better; CI crosses 0).
+- **L3**: Acc Δ(A-B)=-0.0244, 95% CI=[-0.0377, -0.0112], p=0.000422 (significant; arabert-l1l2l3 better; CI excludes 0).
 
 ## Notes on Interpretation
 - Macro-F1 is emphasized for class-imbalance robustness.
@@ -28,7 +38,7 @@ This report compares two MARBERT-based Arabic ITSM checkpoints on a fixed labele
 - Confusion analysis identifies systematically mixed label pairs for targeted data curation.
 
 ## Reproducibility Record
-- Generated at (UTC): `2026-03-06T13:04:29.143324+00:00`
+- Generated at (UTC): `2026-03-10T01:15:08.790493+00:00`
 - Bootstrap samples: `1000`
 - Random seed: `42`
 

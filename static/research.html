@@ -39,6 +39,16 @@
     .hidden { display:none !important; }
     .badge-mini { border:1px solid var(--border); background:var(--bg-elevated); border-radius:999px; font-size:0.72rem; padding:0.18rem 0.5rem; color:var(--text-muted); }
     .logbox { font-family:ui-monospace,monospace; font-size:0.74rem; border:1px solid var(--border); border-radius:8px; background:var(--surface); padding:0.6rem; max-height:140px; overflow:auto; line-height:1.4; }
+    .legend { display:flex; gap:0.55rem; flex-wrap:wrap; margin-bottom:0.85rem; }
+    .legend-item { display:flex; align-items:center; gap:0.45rem; border:1px solid var(--border); border-radius:999px; padding:0.24rem 0.6rem; background:var(--surface); }
+    .swatch { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .swatch-a { background:var(--accent); }
+    .swatch-b { background:#16a34a; }
+    .sig-badge { display:inline-flex; align-items:center; border-radius:999px; padding:0.14rem 0.48rem; font-size:0.72rem; border:1px solid; white-space:nowrap; }
+    .sig-yes { color:#065f46; background:#ecfdf5; border-color:#a7f3d0; }
+    .sig-no { color:#92400e; background:#fffbeb; border-color:#fcd34d; }
+    [data-theme="dark"] .sig-yes { color:#6ee7b7; background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.35); }
+    [data-theme="dark"] .sig-no { color:#fcd34d; background:rgba(245,158,11,0.14); border-color:rgba(245,158,11,0.35); }
   </style>
 </head>
 <body>
@@ -68,6 +78,7 @@
 
     <section id="content" class="hidden">
       <div class="research-grid" id="overviewCards"></div>
+      <div class="legend" id="modelLegend"></div>
 
       <div class="section-title">
         <div class="section-title-left"><i data-lucide="table-2" style="width:14px;height:14px;"></i><span data-i18n="section_metrics">Per-task metrics</span></div>
@@ -81,10 +92,12 @@
             <tr>
               <th data-sort="task">Task</th>
               <th data-sort="macro_a">Macro-F1 A</th>
-              <th data-sort="acc_a">Accuracy A</th>
-              <th data-sort="top3_a">Top-3 A</th>
               <th data-sort="macro_b">Macro-F1 B</th>
+              <th data-sort="macro_diff">Macro Δ (A-B)</th>
+              <th data-sort="acc_a">Accuracy A</th>
               <th data-sort="acc_b">Accuracy B</th>
+              <th data-sort="acc_diff">Acc Δ (A-B)</th>
+              <th data-sort="top3_a">Top-3 A</th>
               <th data-sort="top3_b">Top-3 B</th>
             </tr>
           </thead>
@@ -104,6 +117,8 @@
               <th data-sort-paired="diff">Acc Diff (A-B)</th>
               <th>95% CI</th>
               <th data-sort-paired="pvalue">McNemar p</th>
+              <th data-sort-paired="sig">Significant?</th>
+              <th data-sort-paired="winner">Direction</th>
               <th>Discordant</th>
             </tr>
           </thead>
@@ -140,6 +155,7 @@
     const byId=id=>document.getElementById(id);
     const fmt=(x,d=4)=>Number.isFinite(Number(x))?Number(x).toFixed(d):'—';
     const pct=x=>Number.isFinite(Number(x))?`${(Number(x)*100).toFixed(2)}%`:'—';
+    const pp=x=>Number.isFinite(Number(x))?`${(Number(x)*100).toFixed(2)} pp`:'—';
     function t(k){return (T[LANG]&&T[LANG][k])||k;}
     function applyLang(){document.documentElement.dir=LANG==='ar'?'rtl':'ltr';document.documentElement.lang=LANG;document.documentElement.setAttribute('data-lang',LANG);byId('langBtn').textContent=LANG==='ar'?'EN':'عر';document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(T[LANG][k]!==undefined)el.textContent=T[LANG][k];});}
     (function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light');applyLang();})();
@@ -155,11 +171,11 @@
 
     function sortRows(rows, sort){return rows.sort((a,b)=>{const av=a[sort.key],bv=b[sort.key]; if(typeof av==='number'&&typeof bv==='number') return sort.dir==='asc'?av-bv:bv-av; return sort.dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));});}
 
-    function renderOverview(r){const refs=r.references||{};const cards=[['Rows',r.dataset.rows_evaluated],['Split',r.config.split_name],['Generated',r.generated_at_utc],['Model A',r.models.a.id],['Model B',r.models.b.id],['Dataset CSV',r.config.dataset_csv||'—'],['Dataset HF',`<a href="${refs.dataset_hf_url||'#'}" target="_blank">${refs.dataset_hf_url||'—'}</a>`]]; byId('overviewCards').innerHTML=cards.map(c=>`<article class="research-card"><div class="research-k">${c[0]}</div><div class="research-v">${c[1]}</div></article>`).join('');}
-    function metricsRows(r){const tasks=[...new Set([...Object.keys(r.metrics.a.tasks||{}),...Object.keys(r.metrics.b.tasks||{})])]; return tasks.map(task=>{const a=r.metrics.a.tasks[task]||{},b=r.metrics.b.tasks[task]||{};return {task,macro_a:Number(a.macro_f1||0),acc_a:Number(a.accuracy||0),top3_a:Number(a.top3_hit_rate||0),macro_b:Number(b.macro_f1||0),acc_b:Number(b.accuracy||0),top3_b:Number(b.top3_hit_rate||0),a,b};});}
-    function renderMetrics(r){const rows=sortRows(metricsRows(r),metricsSort); byId('metricsBody').innerHTML=rows.map(row=>`<tr data-task="${row.task}"><td class="mono">${row.task}</td><td>${fmt(row.macro_a)}</td><td>${pct(row.acc_a)}</td><td>${pct(row.top3_a)}</td><td>${fmt(row.macro_b)}</td><td>${pct(row.acc_b)}</td><td>${pct(row.top3_b)}</td></tr>`).join(''); byId('metricsBody').querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{const t=tr.dataset.task;const a=r.metrics.a.tasks[t]||{},b=r.metrics.b.tasks[t]||{};openModal(`<p class="modal-title">Task: <span class="mono">${t}</span></p><p class="modal-sub">Class-level metrics and confusion summary</p><div class="result-table-wrap"><table class="result-table"><thead><tr><th>Label</th><th>Support</th><th>F1 A</th><th>F1 B</th></tr></thead><tbody>${(a.by_class||[]).slice(0,20).map(c=>{const bC=(b.by_class||[]).find(x=>x.label===c.label)||{};return `<tr><td>${c.label}</td><td>${c.support}</td><td>${fmt(c.f1)}</td><td>${fmt(bC.f1||0)}</td></tr>`;}).join('')}</tbody></table></div>`);});}
-    function pairedRows(r){return Object.keys(r.paired_tests||{}).map(task=>({task,diff:Number(r.paired_tests[task].accuracy_diff_a_minus_b||0),pvalue:Number(r.paired_tests[task].mcnemar_p_value||1),raw:r.paired_tests[task]}));}
-    function renderPaired(r){const rows=sortRows(pairedRows(r),pairedSort);byId('pairedBody').innerHTML=rows.map(x=>`<tr><td class="mono">${x.task}</td><td>${fmt(x.diff)}</td><td>[${fmt(x.raw.accuracy_diff_ci95[0])}, ${fmt(x.raw.accuracy_diff_ci95[1])}]</td><td>${x.raw.mcnemar_p_value}</td><td>${x.raw.mcnemar_n01_a_correct_b_wrong}/${x.raw.mcnemar_n10_a_wrong_b_correct}</td></tr>`).join('');}
+    function renderOverview(r){const refs=r.references||{};const cards=[['Rows',r.dataset.rows_evaluated],['Split',r.config.split_name],['Generated',r.generated_at_utc],['Model A',r.models.a.id],['Model B',r.models.b.id],['Dataset CSV',r.config.dataset_csv||'—'],['Dataset HF',`<a href="${refs.dataset_hf_url||'#'}" target="_blank">${refs.dataset_hf_url||'—'}</a>`]]; byId('overviewCards').innerHTML=cards.map(c=>`<article class="research-card"><div class="research-k">${c[0]}</div><div class="research-v">${c[1]}</div></article>`).join(''); byId('modelLegend').innerHTML=`<div class="legend-item"><span class="swatch swatch-a"></span><span class="mono">A = ${r.models.a.id}</span></div><div class="legend-item"><span class="swatch swatch-b"></span><span class="mono">B = ${r.models.b.id}</span></div><div class="legend-item"><span class="mono">Significance rule: p &lt; 0.05</span></div>`;}
+    function metricsRows(r){const tasks=[...new Set([...Object.keys(r.metrics.a.tasks||{}),...Object.keys(r.metrics.b.tasks||{})])]; return tasks.map(task=>{const a=r.metrics.a.tasks[task]||{},b=r.metrics.b.tasks[task]||{};const macroA=Number(a.macro_f1||0),macroB=Number(b.macro_f1||0),accA=Number(a.accuracy||0),accB=Number(b.accuracy||0);return {task,macro_a:macroA,macro_b:macroB,macro_diff:macroA-macroB,acc_a:accA,acc_b:accB,acc_diff:accA-accB,top3_a:Number(a.top3_hit_rate||0),top3_b:Number(b.top3_hit_rate||0),a,b};});}
+    function renderMetrics(r){const rows=sortRows(metricsRows(r),metricsSort); byId('metricsBody').innerHTML=rows.map(row=>`<tr data-task="${row.task}"><td class="mono">${row.task}</td><td>${fmt(row.macro_a)}</td><td>${fmt(row.macro_b)}</td><td>${fmt(row.macro_diff)}</td><td>${pct(row.acc_a)}</td><td>${pct(row.acc_b)}</td><td>${pp(row.acc_diff)}</td><td>${pct(row.top3_a)}</td><td>${pct(row.top3_b)}</td></tr>`).join(''); byId('metricsBody').querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{const t=tr.dataset.task;const a=r.metrics.a.tasks[t]||{},b=r.metrics.b.tasks[t]||{};openModal(`<p class="modal-title">Task: <span class="mono">${t}</span></p><p class="modal-sub">Class-level metrics and confusion summary</p><div class="result-table-wrap"><table class="result-table"><thead><tr><th>Label</th><th>Support</th><th>F1 A</th><th>F1 B</th></tr></thead><tbody>${(a.by_class||[]).slice(0,20).map(c=>{const bC=(b.by_class||[]).find(x=>x.label===c.label)||{};return `<tr><td>${c.label}</td><td>${c.support}</td><td>${fmt(c.f1)}</td><td>${fmt(bC.f1||0)}</td></tr>`;}).join('')}</tbody></table></div>`);});}
+    function pairedRows(r){return Object.keys(r.paired_tests||{}).map(task=>{const raw=r.paired_tests[task]||{};const diff=Number(raw.accuracy_diff_a_minus_b||0),pvalue=Number(raw.mcnemar_p_value||1),ci=raw.accuracy_diff_ci95||[0,0],lo=Number(ci[0]||0),hi=Number(ci[1]||0),significant=pvalue<0.05,ciExcludesZero=(lo>0&&hi>0)||(lo<0&&hi<0),winner=diff>0?'A better':diff<0?'B better':'Tie';return {task,diff,pvalue,sig:significant?1:0,winner,ciExcludesZero,raw};});}
+    function renderPaired(r){const rows=sortRows(pairedRows(r),pairedSort);byId('pairedBody').innerHTML=rows.map(x=>`<tr><td class="mono">${x.task}</td><td>${pp(x.diff)}</td><td>[${pp(x.raw.accuracy_diff_ci95[0])}, ${pp(x.raw.accuracy_diff_ci95[1])}] ${x.ciExcludesZero?'<span class="sig-badge sig-yes">CI excludes 0</span>':'<span class="sig-badge sig-no">CI crosses 0</span>'}</td><td>${x.raw.mcnemar_p_value}</td><td>${x.sig?'<span class="sig-badge sig-yes">Yes</span>':'<span class="sig-badge sig-no">No</span>'}</td><td>${x.winner}</td><td>${x.raw.mcnemar_n01_a_correct_b_wrong}/${x.raw.mcnemar_n10_a_wrong_b_correct}</td></tr>`).join('');}
     function makeChart(elId, rows, keyA, keyB, maxV, formatFn){byId(elId).innerHTML=rows.map(r=>{const a=Number(r[keyA]||0),b=Number(r[keyB]||0);const aw=Math.min(100,(a/maxV)*100),bw=Math.min(100,(b/maxV)*100);return `<div class="bar-comp-row"><div class="mono">${r.task}</div><div><div class="bar-track"><div class="bar-a" style="width:${aw}%"></div></div><div class="bar-val">${formatFn(a)}</div></div><div><div class="bar-track"><div class="bar-b" style="width:${bw}%"></div></div><div class="bar-val">${formatFn(b)}</div></div></div>`;}).join('');}
     function renderConfusions(r){byId('confusionsGrid').innerHTML=(r.shared_tasks||[]).map(task=>{const a=(r.metrics.a.tasks[task]||{}).top_confusions||[];const b=(r.metrics.b.tasks[task]||{}).top_confusions||[];return `<article class="research-card"><div class="research-k mono">${task}</div><div class="muted" style="margin-top:.4rem">${r.models.a.id}</div>${a.slice(0,4).map(x=>`<div class="mono">${x.true} -> ${x.pred} (${x.count})</div>`).join('')}<div class="muted" style="margin-top:.5rem">${r.models.b.id}</div>${b.slice(0,4).map(x=>`<div class="mono">${x.true} -> ${x.pred} (${x.count})</div>`).join('')}</article>`;}).join('');}
     function renderArticle(md){byId('articleText').innerHTML=window.marked?marked.parse(md||''):'';}

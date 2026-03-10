@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-03-06T13:04:29.143324+00:00",
+  "generated_at_utc": "2026-03-10T01:15:08.790493+00:00",
   "config": {
     "dataset_csv": "data/processed/test.csv",
     "dataset_url": null,
@@ -21,9 +21,9 @@
   },
   "models": {
     "a": {
-      "id": "marbert-arabic-itsm-l3-categories",
-      "path": "models/marbert_l1_l2_l3_best",
-      "url": "https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories",
+      "id": "marbert-l1l2l3",
+      "path": "../arabic-itsm-classification/models/marbert_l1_l2_l3_best",
+      "url": "https://huggingface.co/marbert-l1l2l3",
       "tasks": [
         "l1",
         "l2",
@@ -31,15 +31,13 @@
       ]
     },
     "b": {
-      "id": "marbert-arabic-itsm-multitask",
-      "path": "models/marbert_multi_task_best",
-      "url": "https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask",
+      "id": "arabert-l1l2l3",
+      "path": "../arabic-itsm-classification/models/arabert_l1_l2_l3_best",
+      "url": "https://huggingface.co/arabert-l1l2l3",
       "tasks": [
         "l1",
         "l2",
-        "l3",
-        "priority",
-        "sentiment"
+        "l3"
       ]
     }
   },
@@ -171,11 +169,11 @@
             }
           ],
           "latency_ms": {
-            "mean": 17.704,
-            "p50": 16.5,
-            "p95": 24.5,
-            "min": 12.9,
-            "max": 258.4
+            "mean": 15.02,
+            "p50": 13.2,
+            "p95": 19.1,
+            "min": 12.1,
+            "max": 1149.9
           },
           "top3_hit_rate": 0.9393
         },
@@ -366,11 +364,11 @@
             }
           ],
           "latency_ms": {
-            "mean": 17.704,
-            "p50": 16.5,
-            "p95": 24.5,
-            "min": 12.9,
-            "max": 258.4
+            "mean": 15.02,
+            "p50": 13.2,
+            "p95": 19.1,
+            "min": 12.1,
+            "max": 1149.9
           },
           "top3_hit_rate": 0.8946
         },
@@ -785,21 +783,21 @@
             }
           ],
           "latency_ms": {
-            "mean": 17.704,
-            "p50": 16.5,
-            "p95": 24.5,
-            "min": 12.9,
-            "max": 258.4
+            "mean": 15.02,
+            "p50": 13.2,
+            "p95": 19.1,
+            "min": 12.1,
+            "max": 1149.9
           },
           "top3_hit_rate": 0.8786
         }
       },
       "overall_latency_ms": {
-        "mean": 17.704,
-        "p50": 16.5,
-        "p95": 24.5,
-        "min": 12.9,
-        "max": 258.4
+        "mean": 15.02,
+        "p50": 13.2,
+        "p95": 19.1,
+        "min": 12.1,
+        "max": 1149.9
       }
     },
     "b": {
@@ -807,38 +805,38 @@
         "l1": {
           "task": "l1",
           "n": 1433,
-          "accuracy": 0.887,
-          "macro_f1": 0.8819,
-          "weighted_f1": 0.8874,
+          "accuracy": 0.8918,
+          "macro_f1": 0.8883,
+          "weighted_f1": 0.8926,
           "accuracy_ci95": [
-            0.8709,
-            0.9023
+            0.8758,
+            0.9072
           ],
           "top_confusions": [
             {
-              "true": "Access",
-              "pred": "Hardware",
+              "true": "Hardware",
+              "pred": "Access",
               "count": 15
-            },
-            {
-              "true": "Security",
-              "pred": "Hardware",
-              "count": 11
             },
             {
               "true": "Service",
               "pred": "Access",
+              "count": 13
+            },
+            {
+              "true": "Software",
+              "pred": "Access",
+              "count": 12
+            },
+            {
+              "true": "Security",
+              "pred": "Access",
               "count": 10
             },
             {
-              "true": "Hardware",
-              "pred": "Access",
-              "count": 9
-            },
-            {
-              "true": "Software",
-              "pred": "Access",
-              "count": 9
+              "true": "Access",
+              "pred": "Service",
+              "count": 10
             },
             {
               "true": "Access",
@@ -846,29 +844,29 @@
               "count": 9
             },
             {
+              "true": "Access",
+              "pred": "Hardware",
+              "count": 9
+            },
+            {
               "true": "Security",
-              "pred": "Software",
+              "pred": "Hardware",
               "count": 8
             },
             {
-              "true": "Security",
+              "true": "Network",
               "pred": "Access",
               "count": 7
             },
             {
+              "true": "Security",
+              "pred": "Service",
+              "count": 7
+            },
+            {
               "true": "Hardware",
-              "pred": "Service",
-              "count": 7
-            },
-            {
-              "true": "Access",
-              "pred": "Service",
-              "count": 7
-            },
-            {
-              "true": "Software",
               "pred": "Security",
-              "count": 7
+              "count": 6
             },
             {
               "true": "Service",
@@ -880,110 +878,95 @@
             {
               "label": "Access",
               "support": 286,
-              "precision": 0.8591,
-              "recall": 0.8741,
-              "f1": 0.8666
+              "precision": 0.8173,
+              "recall": 0.8916,
+              "f1": 0.8528
             },
             {
               "label": "Software",
               "support": 266,
-              "precision": 0.9129,
+              "precision": 0.9488,
               "recall": 0.906,
-              "f1": 0.9094
+              "f1": 0.9269
             },
             {
               "label": "Hardware",
               "support": 265,
-              "precision": 0.8577,
-              "recall": 0.9094,
-              "f1": 0.8828
+              "precision": 0.8914,
+              "recall": 0.8981,
+              "f1": 0.8947
             },
             {
               "label": "Network",
               "support": 264,
-              "precision": 0.9919,
-              "recall": 0.928,
-              "f1": 0.9589
+              "precision": 0.9801,
+              "recall": 0.9318,
+              "f1": 0.9553
             },
             {
               "label": "Service",
               "support": 182,
-              "precision": 0.8525,
-              "recall": 0.8571,
-              "f1": 0.8548
+              "precision": 0.8708,
+              "recall": 0.8516,
+              "f1": 0.8611
             },
             {
               "label": "Security",
               "support": 170,
-              "precision": 0.8263,
-              "recall": 0.8118,
-              "f1": 0.819
+              "precision": 0.8363,
+              "recall": 0.8412,
+              "f1": 0.8387
             }
           ],
           "latency_ms": {
-            "mean": 17.791,
-            "p50": 16.6,
-            "p95": 24.6,
-            "min": 12.8,
-            "max": 54.5
+            "mean": 14.12,
+            "p50": 13.2,
+            "p95": 18.6,
+            "min": 12.1,
+            "max": 39.4
           },
-          "top3_hit_rate": 0.9428
+          "top3_hit_rate": 0.9393
         },
         "l2": {
           "task": "l2",
           "n": 1433,
-          "accuracy": 0.8765,
-          "macro_f1": 0.8748,
-          "weighted_f1": 0.8765,
+          "accuracy": 0.8751,
+          "macro_f1": 0.8733,
+          "weighted_f1": 0.8756,
           "accuracy_ci95": [
-            0.8597,
-            0.8925
+            0.8576,
+            0.8911
           ],
           "top_confusions": [
             {
-              "true": "Business App",
-              "pred": "Account",
-              "count": 5
-            },
-            {
-              "true": "Policy/Compliance",
-              "pred": "Incident",
-              "count": 4
-            },
-            {
-              "true": "Request",
-              "pred": "Account",
-              "count": 4
-            },
-            {
-              "true": "Incident",
-              "pred": "Business App",
-              "count": 4
-            },
-            {
-              "true": "MFA/SSO",
-              "pred": "Incident",
-              "count": 4
-            },
-            {
-              "true": "Incident",
-              "pred": "Account",
-              "count": 4
-            },
-            {
-              "true": "Policy/Compliance",
-              "pred": "Business App",
-              "count": 4
-            },
-            {
               "true": "Internet/LAN",
-              "pred": "Account",
+              "pred": "Permissions",
+              "count": 7
+            },
+            {
+              "true": "Business App",
+              "pred": "Permissions",
+              "count": 4
+            },
+            {
+              "true": "Policy/Compliance",
+              "pred": "Request",
               "count": 4
             },
             {
               "true": "Peripherals",
-              "pred": "Malware/Phishing",
-              "count": 3
+              "pred": "Printer/Scanner",
+              "count": 4
+            },
+            {
+              "true": "Business App",
+              "pred": "Account",
+              "count": 4
+            },
+            {
+              "true": "Email/Calendar",
+              "pred": "Permissions",
+              "count": 4
             },
             {
               "true": "Policy/Compliance",
@@ -991,13 +974,28 @@
               "count": 3
             },
             {
-              "true": "Policy/Compliance",
-              "pred": "Printer/Scanner",
+              "true": "Request",
+              "pred": "Business App",
               "count": 3
             },
             {
-              "true": "Malware/Phishing",
-              "pred": "Laptop/Desktop",
+              "true": "Policy/Compliance",
+              "pred": "Account",
+              "count": 3
+            },
+            {
+              "true": "Request",
+              "pred": "Account",
+              "count": 3
+            },
+            {
+              "true": "Incident",
+              "pred": "Account",
+              "count": 3
+            },
+            {
+              "true": "Account",
+              "pred": "Permissions",
               "count": 3
             }
           ],
@@ -1005,9 +1003,9 @@
             {
               "label": "Account",
               "support": 109,
-              "precision": 0.768,
-              "recall": 0.8807,
-              "f1": 0.8205
+              "precision": 0.7787,
+              "recall": 0.8716,
+              "f1": 0.8225
             },
             {
               "label": "VPN",
@@ -1019,51 +1017,51 @@
             {
               "label": "WiFi",
               "support": 97,
-              "precision": 0.9898,
+              "precision": 1.0,
               "recall": 1.0,
-              "f1": 0.9949
+              "f1": 1.0
             },
             {
               "label": "Business App",
               "support": 94,
-              "precision": 0.8152,
+              "precision": 0.8929,
               "recall": 0.7979,
-              "f1": 0.8065
+              "f1": 0.8427
             },
             {
               "label": "Request",
               "support": 92,
-              "precision": 0.8804,
+              "precision": 0.8526,
               "recall": 0.8804,
-              "f1": 0.8804
+              "f1": 0.8663
             },
             {
               "label": "Incident",
               "support": 90,
-              "precision": 0.7629,
-              "recall": 0.8222,
-              "f1": 0.7914
+              "precision": 0.8636,
+              "recall": 0.8444,
+              "f1": 0.8539
             },
             {
               "label": "Laptop/Desktop",
               "support": 89,
-              "precision": 0.8936,
-              "recall": 0.9438,
-              "f1": 0.918
+              "precision": 0.9326,
+              "recall": 0.9326,
+              "f1": 0.9326
             },
             {
               "label": "MFA/SSO",
               "support": 89,
-              "precision": 0.9487,
-              "recall": 0.8315,
-              "f1": 0.8862
+              "precision": 0.8391,
+              "recall": 0.8202,
+              "f1": 0.8295
             },
             {
               "label": "Peripherals",
               "support": 89,
-              "precision": 0.8372,
-              "recall": 0.809,
-              "f1": 0.8229
+              "precision": 0.8161,
+              "recall": 0.7978,
+              "f1": 0.8068
             },
             {
               "label": "Office Apps",
@@ -1075,115 +1073,95 @@
             {
               "label": "Permissions",
               "support": 88,
-              "precision": 0.8352,
-              "recall": 0.8636,
-              "f1": 0.8492
+              "precision": 0.7064,
+              "recall": 0.875,
+              "f1": 0.7817
             },
             {
               "label": "Malware/Phishing",
               "support": 87,
-              "precision": 0.8043,
+              "precision": 0.8315,
               "recall": 0.8506,
-              "f1": 0.8268
+              "f1": 0.8409
             },
             {
               "label": "Printer/Scanner",
               "support": 87,
-              "precision": 0.8539,
-              "recall": 0.8736,
-              "f1": 0.8636
+              "precision": 0.8902,
+              "recall": 0.8391,
+              "f1": 0.8639
             },
             {
               "label": "Email/Calendar",
               "support": 84,
-              "precision": 0.8941,
+              "precision": 0.9048,
               "recall": 0.9048,
-              "f1": 0.8994
+              "f1": 0.9048
             },
             {
               "label": "Policy/Compliance",
               "support": 83,
-              "precision": 0.9028,
-              "recall": 0.7831,
-              "f1": 0.8387
+              "precision": 0.9296,
+              "recall": 0.7952,
+              "f1": 0.8571
             },
             {
               "label": "Internet/LAN",
               "support": 67,
-              "precision": 0.8909,
-              "recall": 0.7313,
-              "f1": 0.8033
+              "precision": 0.8065,
+              "recall": 0.7463,
+              "f1": 0.7752
             }
           ],
           "latency_ms": {
-            "mean": 17.791,
-            "p50": 16.6,
-            "p95": 24.6,
-            "min": 12.8,
-            "max": 54.5
+            "mean": 14.12,
+            "p50": 13.2,
+            "p95": 18.6,
+            "min": 12.1,
+            "max": 39.4
           },
-          "top3_hit_rate": 0.8981
+          "top3_hit_rate": 0.8925
         },
         "l3": {
           "task": "l3",
           "n": 1433,
-          "accuracy": 0.753,
-          "macro_f1": 0.7451,
-          "weighted_f1": 0.7488,
+          "accuracy": 0.8067,
+          "macro_f1": 0.8006,
+          "weighted_f1": 0.8082,
           "accuracy_ci95": [
-            0.7299,
-            0.7746
+            0.7865,
+            0.8269
           ],
           "top_confusions": [
             {
+              "true": "License",
+              "pred": "Word/Excel",
+              "count": 7
+            },
+            {
+              "true": "Split Tunnel",
+              "pred": "Connection Failure",
+              "count": 7
+            },
+            {
               "true": "Slow Speed",
-              "pred": "Connectivity",
-              "count": 27
+              "pred": "Authentication",
+              "count": 6
             },
             {
               "true": "Authentication",
               "pred": "Connectivity",
-              "count": 19
+              "count": 4
+            },
+            {
+              "true": "Profile Update",
+              "pred": "Password Reset",
+              "count": 4
             },
             {
               "true": "Credentials",
-              "pred": "Connection Failure",
-              "count": 15
-            },
-            {
-              "true": "Crash",
-              "pred": "Word/Excel",
-              "count": 9
-            },
-            {
-              "true": "Split Tunnel",
-              "pred": "Credentials",
-              "count": 9
-            },
-            {
-              "true": "Intermittent",
-              "pred": "Outage",
-              "count": 8
-            },
-            {
-              "true": "Split Tunnel",
-              "pred": "Connection Failure",
-              "count": 8
-            },
-            {
-              "true": "Crash",
-              "pred": "License",
-              "count": 7
-            },
-            {
-              "true": "MFA Failure",
-              "pred": "SSO Login Issue",
-              "count": 6
-            },
-            {
-              "true": "Paper Jam",
-              "pred": "Print Failure",
-              "count": 6
+              "pred": "Split Tunnel",
+              "count": 4
             },
             {
               "true": "Permission Denied",
@@ -1191,193 +1169,213 @@
               "count": 4
             },
             {
-              "true": "Data Access",
-              "pred": "Role Request",
+              "true": "Slow Speed",
+              "pred": "Connectivity",
               "count": 4
+            },
+            {
+              "true": "No Internet",
+              "pred": "DNS",
+              "count": 4
+            },
+            {
+              "true": "Latency",
+              "pred": "New Account",
+              "count": 3
+            },
+            {
+              "true": "DNS",
+              "pred": "Latency",
+              "count": 3
+            },
+            {
+              "true": "Crash",
+              "pred": "Word/Excel",
+              "count": 3
             }
           ],
           "by_class": [
             {
               "label": "Account Locked",
               "support": 44,
-              "precision": 0.9268,
+              "precision": 0.7917,
               "recall": 0.8636,
-              "f1": 0.8941
+              "f1": 0.8261
             },
             {
               "label": "Phishing Email",
               "support": 42,
-              "precision": 0.825,
-              "recall": 0.7857,
-              "f1": 0.8049
+              "precision": 0.8974,
+              "recall": 0.8333,
+              "f1": 0.8642
             },
             {
               "label": "Paper Jam",
               "support": 39,
-              "precision": 0.875,
-              "recall": 0.7179,
-              "f1": 0.7887
+              "precision": 0.8108,
+              "recall": 0.7692,
+              "f1": 0.7895
             },
             {
               "label": "Performance",
               "support": 39,
               "precision": 1.0,
-              "recall": 1.0,
-              "f1": 1.0
+              "recall": 0.9744,
+              "f1": 0.987
             },
             {
               "label": "Connectivity",
               "support": 36,
-              "precision": 0.4337,
-              "recall": 1.0,
-              "f1": 0.605
+              "precision": 0.7949,
+              "recall": 0.8611,
+              "f1": 0.8267
             },
             {
               "label": "Credentials",
               "support": 36,
-              "precision": 0.7,
-              "recall": 0.5833,
-              "f1": 0.6364
+              "precision": 0.8824,
+              "recall": 0.8333,
+              "f1": 0.8571
             },
             {
               "label": "Blocked Site",
               "support": 35,
-              "precision": 0.8857,
-              "recall": 0.8857,
-              "f1": 0.8857
+              "precision": 0.7805,
+              "recall": 0.9143,
+              "f1": 0.8421
             },
             {
               "label": "Integration",
               "support": 35,
-              "precision": 0.96,
-              "recall": 0.6857,
-              "f1": 0.8
+              "precision": 0.9259,
+              "recall": 0.7143,
+              "f1": 0.8065
             },
             {
               "label": "New Account",
               "support": 34,
-              "precision": 0.7647,
+              "precision": 0.6842,
               "recall": 0.7647,
-              "f1": 0.7647
+              "f1": 0.7222
             },
             {
               "label": "Outage",
               "support": 34,
-              "precision": 0.7027,
-              "recall": 0.7647,
-              "f1": 0.7324
+              "precision": 0.9643,
+              "recall": 0.7941,
+              "f1": 0.871
             },
             {
               "label": "Crash",
               "support": 33,
-              "precision": 0.9444,
-              "recall": 0.5152,
-              "f1": 0.6667
+              "precision": 0.9655,
+              "recall": 0.8485,
+              "f1": 0.9032
             },
             {
               "label": "Password Reset",
               "support": 33,
-              "precision": 0.6667,
+              "precision": 0.5714,
               "recall": 0.8485,
-              "f1": 0.7467
+              "f1": 0.6829
             },
             {
               "label": "Slow Speed",
               "support": 33,
-              "precision": 1.0,
-              "recall": 0.1818,
-              "f1": 0.3077
+              "precision": 0.8214,
+              "recall": 0.697,
+              "f1": 0.7541
             },
             {
               "label": "Split Tunnel",
               "support": 33,
-              "precision": 1.0,
-              "recall": 0.4848,
-              "f1": 0.6531
+              "precision": 0.8519,
+              "recall": 0.697,
+              "f1": 0.7667
             },
             {
               "label": "Bug",
               "support": 32,
-              "precision": 0.6222,
-              "recall": 0.875,
-              "f1": 0.7273
+              "precision": 0.9062,
+              "recall": 0.9062,
+              "f1": 0.9062
             },
             {
               "label": "Intermittent",
               "support": 32,
-              "precision": 0.8696,
-              "recall": 0.625,
-              "f1": 0.7273
+              "precision": 0.9333,
+              "recall": 0.875,
+              "f1": 0.9032
             },
             {
               "label": "Keyboard/Mouse",
               "support": 32,
-              "precision": 0.871,
-              "recall": 0.8438,
-              "f1": 0.8571
+              "precision": 0.8485,
+              "recall": 0.875,
+              "f1": 0.8615
             },
             {
               "label": "Profile Update",
               "support": 32,
-              "precision": 0.6053,
-              "recall": 0.7188,
-              "f1": 0.6571
+              "precision": 0.7273,
+              "recall": 0.75,
+              "f1": 0.7385
             },
             {
               "label": "Connection Failure",
               "support": 31,
-              "precision": 0.566,
+              "precision": 0.75,
               "recall": 0.9677,
-              "f1": 0.7143
+              "f1": 0.8451
             },
             {
               "label": "MFA Failure",
               "support": 31,
-              "precision": 0.76,
-              "recall": 0.6129,
-              "f1": 0.6786
+              "precision": 0.8621,
+              "recall": 0.8065,
+              "f1": 0.8333
             },
             {
               "label": "New Device",
               "support": 31,
-              "precision": 0.8333,
+              "precision": 0.75,
               "recall": 0.9677,
-              "f1": 0.8955
+              "f1": 0.8451
             },
             {
               "label": "Permission Denied",
               "support": 31,
-              "precision": 0.6111,
-              "recall": 0.7097,
-              "f1": 0.6567
+              "precision": 1.0,
+              "recall": 0.7419,
+              "f1": 0.8519
             },
             {
               "label": "Role Request",
               "support": 31,
-              "precision": 0.65,
-              "recall": 0.8387,
-              "f1": 0.7324
+              "precision": 0.641,
+              "recall": 0.8065,
+              "f1": 0.7143
             },
             {
               "label": "Authenticator Issue",
               "support": 29,
-              "precision": 0.913,
+              "precision": 0.875,
               "recall": 0.7241,
-              "f1": 0.8077
+              "f1": 0.7925
             },
             {
               "label": "Mailbox Access",
               "support": 29,
-              "precision": 1.0,
+              "precision": 0.8276,
               "recall": 0.8276,
-              "f1": 0.9057
+              "f1": 0.8276
             },
             {
               "label": "Monitor",
               "support": 29,
-              "precision": 0.7778,
+              "precision": 0.8077,
               "recall": 0.7241,
-              "f1": 0.75
+              "f1": 0.7636
             },
             {
               "label": "Outlook Issue",
@@ -1389,58 +1387,58 @@
             {
               "label": "Print Failure",
               "support": 29,
-              "precision": 0.5417,
-              "recall": 0.8966,
-              "f1": 0.6753
+              "precision": 0.8846,
+              "recall": 0.7931,
+              "f1": 0.8364
             },
             {
               "label": "SSO Login Issue",
               "support": 29,
-              "precision": 0.7188,
+              "precision": 0.7667,
               "recall": 0.7931,
-              "f1": 0.7541
+              "f1": 0.7797
             },
             {
               "label": "Authentication",
               "support": 28,
-              "precision": 1.0,
-              "recall": 0.3214,
-              "f1": 0.4865
+              "precision": 0.7333,
+              "recall": 0.7857,
+              "f1": 0.7586
             },
             {
               "label": "Docking Station",
               "support": 28,
-              "precision": 0.7692,
+              "precision": 0.6897,
               "recall": 0.7143,
-              "f1": 0.7407
+              "f1": 0.7018
             },
             {
               "label": "License",
               "support": 28,
-              "precision": 0.75,
-              "recall": 0.8571,
-              "f1": 0.8
+              "precision": 0.913,
+              "recall": 0.75,
+              "f1": 0.8235
             },
             {
               "label": "No Internet",
               "support": 28,
-              "precision": 0.6774,
-              "recall": 0.75,
-              "f1": 0.7119
+              "precision": 0.8148,
+              "recall": 0.7857,
+              "f1": 0.8
             },
             {
               "label": "Boot Issue",
               "support": 27,
-              "precision": 0.8125,
-              "recall": 0.963,
-              "f1": 0.8814
+              "precision": 0.9615,
+              "recall": 0.9259,
+              "f1": 0.9434
             },
             {
               "label": "Feature Request",
               "support": 27,
-              "precision": 0.8636,
+              "precision": 0.76,
               "recall": 0.7037,
-              "f1": 0.7755
+              "f1": 0.7308
             },
             {
               "label": "Software Install",
@@ -1452,30 +1450,30 @@
             {
               "label": "Virus Alert",
               "support": 27,
-              "precision": 0.6786,
-              "recall": 0.7037,
-              "f1": 0.6909
+              "precision": 0.7692,
+              "recall": 0.7407,
+              "f1": 0.7547
             },
             {
               "label": "Word/Excel",
               "support": 27,
-              "precision": 0.6579,
-              "recall": 0.9259,
-              "f1": 0.7692
+              "precision": 0.7222,
+              "recall": 0.963,
+              "f1": 0.8254
             },
             {
               "label": "Admin Access",
               "support": 26,
-              "precision": 0.84,
-              "recall": 0.8077,
-              "f1": 0.8235
+              "precision": 0.9091,
+              "recall": 0.7692,
+              "f1": 0.8333
             },
             {
               "label": "Sync Problem",
               "support": 26,
-              "precision": 0.7188,
+              "precision": 0.8519,
               "recall": 0.8846,
-              "f1": 0.7931
+              "f1": 0.8679
             },
             {
               "label": "Data Access",
@@ -1487,298 +1485,69 @@
             {
               "label": "Degradation",
               "support": 24,
-              "precision": 0.6552,
-              "recall": 0.7917,
-              "f1": 0.717
+              "precision": 0.6667,
+              "recall": 0.8333,
+              "f1": 0.7407
             },
             {
               "label": "Device Encryption",
               "support": 24,
-              "precision": 0.85,
+              "precision": 0.9444,
               "recall": 0.7083,
-              "f1": 0.7727
+              "f1": 0.8095
             },
             {
               "label": "Battery",
               "support": 23,
-              "precision": 0.7826,
+              "precision": 0.6667,
               "recall": 0.7826,
-              "f1": 0.7826
+              "f1": 0.72
             },
             {
               "label": "DNS",
               "support": 22,
-              "precision": 0.75,
-              "recall": 0.5455,
-              "f1": 0.6316
+              "precision": 0.5,
+              "recall": 0.5909,
+              "f1": 0.5417
             },
             {
               "label": "Driver",
               "support": 19,
-              "precision": 0.7333,
-              "recall": 0.5789,
-              "f1": 0.6471
+              "precision": 0.7647,
+              "recall": 0.6842,
+              "f1": 0.7222
             },
             {
               "label": "Suspicious Link",
               "support": 18,
-              "precision": 0.8235,
-              "recall": 0.7778,
-              "f1": 0.8
+              "precision": 0.6818,
+              "recall": 0.8333,
+              "f1": 0.75
             },
             {
               "label": "Latency",
               "support": 17,
-              "precision": 0.75,
-              "recall": 0.5294,
-              "f1": 0.6207
+              "precision": 0.5789,
+              "recall": 0.6471,
+              "f1": 0.6111
             }
           ],
           "latency_ms": {
-            "mean": 17.791,
-            "p50": 16.6,
-            "p95": 24.6,
-            "min": 12.8,
-            "max": 54.5
+            "mean": 14.12,
+            "p50": 13.2,
+            "p95": 18.6,
+            "min": 12.1,
+            "max": 39.4
           },
-          "top3_hit_rate": 0.8793
-        },
-        "priority": {
-          "task": "priority",
-          "n": 1433,
-          "accuracy": 0.3273,
-          "macro_f1": 0.1537,
-          "weighted_f1": 0.2498,
-          "accuracy_ci95": [
-            0.3029,
-            0.3503
-          ],
-          "top_confusions": [
-            {
-              "true": "4",
-              "pred": "3",
-              "count": 284
-            },
-            {
-              "true": "2",
-              "pred": "3",
-              "count": 216
-            },
-            {
-              "true": "3",
-              "pred": "4",
-              "count": 141
-            },
-            {
-              "true": "5",
-              "pred": "3",
-              "count": 134
-            },
-            {
-              "true": "2",
-              "pred": "4",
-              "count": 64
-            },
-            {
-              "true": "1",
-              "pred": "3",
-              "count": 40
-            },
-            {
-              "true": "5",
-              "pred": "4",
-              "count": 38
-            },
-            {
-              "true": "3",
-              "pred": "2",
-              "count": 16
-            },
-            {
-              "true": "1",
-              "pred": "4",
-              "count": 12
-            },
-            {
-              "true": "4",
-              "pred": "2",
-              "count": 10
-            },
-            {
-              "true": "5",
-              "pred": "2",
-              "count": 7
-            },
-            {
-              "true": "1",
-              "pred": "2",
-              "count": 2
-            }
-          ],
-          "by_class": [
-            {
-              "label": "3",
-              "support": 527,
-              "precision": 0.3544,
-              "recall": 0.7021,
-              "f1": 0.471
-            },
-            {
-              "label": "4",
-              "support": 385,
-              "precision": 0.263,
-              "recall": 0.2364,
-              "f1": 0.249
-            },
-            {
-              "label": "2",
-              "support": 288,
-              "precision": 0.186,
-              "recall": 0.0278,
-              "f1": 0.0483
-            },
-            {
-              "label": "5",
-              "support": 179,
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0
-            },
-            {
-              "label": "1",
-              "support": 54,
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0
-            }
-          ],
-          "latency_ms": {
-            "mean": 17.791,
-            "p50": 16.6,
-            "p95": 24.6,
-            "min": 12.8,
-            "max": 54.5
-          },
-          "top3_hit_rate": 0.8367
-        },
-        "sentiment": {
-          "task": "sentiment",
-          "n": 1433,
-          "accuracy": 0.247,
-          "macro_f1": 0.2407,
-          "weighted_f1": 0.2419,
-          "accuracy_ci95": [
-            0.2247,
-            0.2687
-          ],
-          "top_confusions": [
-            {
-              "true": "neutral",
-              "pred": "mixed",
-              "count": 115
-            },
-            {
-              "true": "mixed",
-              "pred": "negative",
-              "count": 111
-            },
-            {
-              "true": "neutral",
-              "pred": "negative",
-              "count": 110
-            },
-            {
-              "true": "negative",
-              "pred": "mixed",
-              "count": 104
-            },
-            {
-              "true": "positive",
-              "pred": "negative",
-              "count": 101
-            },
-            {
-              "true": "negative",
-              "pred": "positive",
-              "count": 95
-            },
-            {
-              "true": "neutral",
-              "pred": "positive",
-              "count": 90
-            },
-            {
-              "true": "positive",
-              "pred": "mixed",
-              "count": 83
-            },
-            {
-              "true": "mixed",
-              "pred": "positive",
-              "count": 72
-            },
-            {
-              "true": "mixed",
-              "pred": "neutral",
-              "count": 70
-            },
-            {
-              "true": "negative",
-              "pred": "neutral",
-              "count": 66
-            },
-            {
-              "true": "positive",
-              "pred": "neutral",
-              "count": 62
-            }
-          ],
-          "by_class": [
-            {
-              "label": "negative",
-              "support": 392,
-              "precision": 0.2829,
-              "recall": 0.324,
-              "f1": 0.302
-            },
-            {
-              "label": "neutral",
-              "support": 362,
-              "precision": 0.1918,
-              "recall": 0.1298,
-              "f1": 0.1549
-            },
-            {
-              "label": "mixed",
-              "support": 354,
-              "precision": 0.2506,
-              "recall": 0.2853,
-              "f1": 0.2668
-            },
-            {
-              "label": "positive",
-              "support": 325,
-              "precision": 0.2351,
-              "recall": 0.2431,
-              "f1": 0.239
-            }
-          ],
-          "latency_ms": {
-            "mean": 17.791,
-            "p50": 16.6,
-            "p95": 24.6,
-            "min": 12.8,
-            "max": 54.5
-          },
-          "top3_hit_rate": 0.7376
+          "top3_hit_rate": 0.8786
         }
       },
       "overall_latency_ms": {
-        "mean": 17.791,
-        "p50": 16.6,
-        "p95": 24.6,
-        "min": 12.8,
-        "max": 54.5
+        "mean": 14.12,
+        "p50": 13.2,
+        "p95": 18.6,
+        "min": 12.1,
+        "max": 39.4
       }
     }
   },
@@ -1786,41 +1555,41 @@
     "l1": {
       "n": 1433,
       "accuracy_a": 0.887,
-      "accuracy_b": 0.887,
-      "accuracy_diff_a_minus_b": 0.0,
+      "accuracy_b": 0.8918,
+      "accuracy_diff_a_minus_b": -0.0049,
       "accuracy_diff_ci95": [
-        -0.0056,
-        0.0063
+        -0.0126,
+        0.0021
       ],
-      "mcnemar_n01_a_correct_b_wrong": 10,
-      "mcnemar_n10_a_wrong_b_correct": 10,
-      "mcnemar_p_value": 0.823063
+      "mcnemar_n01_a_correct_b_wrong": 11,
+      "mcnemar_n10_a_wrong_b_correct": 18,
+      "mcnemar_p_value": 0.265205
     },
     "l2": {
       "n": 1433,
       "accuracy_a": 0.873,
-      "accuracy_b": 0.8765,
-      "accuracy_diff_a_minus_b": -0.0035,
+      "accuracy_b": 0.8751,
+      "accuracy_diff_a_minus_b": -0.0021,
       "accuracy_diff_ci95": [
-        -0.0098,
-        0.0028
+        -0.0077,
+        0.0042
       ],
-      "mcnemar_n01_a_correct_b_wrong": 8,
-      "mcnemar_n10_a_wrong_b_correct": 13,
-      "mcnemar_p_value": 0.382733
+      "mcnemar_n01_a_correct_b_wrong": 9,
+      "mcnemar_n10_a_wrong_b_correct": 12,
+      "mcnemar_p_value": 0.662521
     },
     "l3": {
       "n": 1433,
       "accuracy_a": 0.7823,
-      "accuracy_b": 0.753,
-      "accuracy_diff_a_minus_b": 0.0293,
+      "accuracy_b": 0.8067,
+      "accuracy_diff_a_minus_b": -0.0244,
       "accuracy_diff_ci95": [
-        0.0195,
-        0.0405
+        -0.0377,
+        -0.0112
       ],
-      "mcnemar_n01_a_correct_b_wrong": 52,
-      "mcnemar_n10_a_wrong_b_correct": 10,
-      "mcnemar_p_value": 0.0
+      "mcnemar_n01_a_correct_b_wrong": 29,
+      "mcnemar_n10_a_wrong_b_correct": 64,
+      "mcnemar_p_value": 0.000422
     }
   },
   "charts": {
@@ -1828,45 +1597,45 @@
       {
         "task": "l1",
         "macro_f1_a": 0.8838,
-        "macro_f1_b": 0.8819,
+        "macro_f1_b": 0.8883,
         "accuracy_a": 0.887,
-        "accuracy_b": 0.887,
-        "latency_mean_a_ms": 17.704,
-        "latency_mean_b_ms": 17.791
+        "accuracy_b": 0.8918,
+        "latency_mean_a_ms": 15.02,
+        "latency_mean_b_ms": 14.12
       },
       {
         "task": "l2",
         "macro_f1_a": 0.8705,
-        "macro_f1_b": 0.8748,
+        "macro_f1_b": 0.8733,
         "accuracy_a": 0.873,
-        "accuracy_b": 0.8765,
-        "latency_mean_a_ms": 17.704,
-        "latency_mean_b_ms": 17.791
+        "accuracy_b": 0.8751,
+        "latency_mean_a_ms": 15.02,
+        "latency_mean_b_ms": 14.12
       },
       {
         "task": "l3",
         "macro_f1_a": 0.7752,
-        "macro_f1_b": 0.7451,
+        "macro_f1_b": 0.8006,
         "accuracy_a": 0.7823,
-        "accuracy_b": 0.753,
-        "latency_mean_a_ms": 17.704,
-        "latency_mean_b_ms": 17.791
+        "accuracy_b": 0.8067,
+        "latency_mean_a_ms": 15.02,
+        "latency_mean_b_ms": 14.12
       }
     ],
     "overall_latency_ms": {
       "a": {
-        "mean": 17.704,
-        "p50": 16.5,
-        "p95": 24.5,
-        "min": 12.9,
-        "max": 258.4
+        "mean": 15.02,
+        "p50": 13.2,
+        "p95": 19.1,
+        "min": 12.1,
+        "max": 1149.9
       },
       "b": {
-        "mean": 17.791,
-        "p50": 16.6,
-        "p95": 24.6,
-        "min": 12.8,
-        "max": 54.5
+        "mean": 14.12,
+        "p50": 13.2,
+        "p95": 18.6,
+        "min": 12.1,
+        "max": 39.4
       }
     }
   },

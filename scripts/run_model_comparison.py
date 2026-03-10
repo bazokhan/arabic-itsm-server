@@ -41,8 +41,8 @@ TASK_TO_GT_COL = {
     "sentiment": "sentiment",
 }
 
-DEFAULT_MODEL_A_URL = "https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories"
-DEFAULT_MODEL_B_URL = "https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask"
+DEFAULT_MODEL_A_URL = ""
+DEFAULT_MODEL_B_URL = ""
 DEFAULT_DATASET_HF_URL = "https://huggingface.co/datasets/albaz2000/arabic-itsm-dataset"
 DEFAULT_MODEL_A_ID = "marbert-arabic-itsm-l3-categories"
 DEFAULT_MODEL_B_ID = "marbert-arabic-itsm-multitask"
@@ -66,6 +66,36 @@ def _public_model_path(path: str) -> str:
     if p.startswith("/"):
         return f"models/{Path(p).name}"
     return p
+
+
+def _is_http_url(value: str) -> bool:
+    v = str(value or "").strip().lower()
+    return v.startswith("http://") or v.startswith("https://")
+
+
+def _normalize_model_url(model_id: str, model_url: str) -> str:
+    explicit = str(model_url or "").strip()
+    if explicit:
+        return explicit
+
+    candidate = str(model_id or "").strip()
+    if not candidate:
+        return ""
+    if _is_http_url(candidate):
+        return candidate
+    # Only infer a Hub URL for clear repo-like IDs (org/repo or repo).
+    if "\\" in candidate or candidate.startswith("."):
+        return ""
+    if "/" in candidate:
+        return f"https://huggingface.co/{candidate}"
+    if " " in candidate:
+        return ""
+    return f"https://huggingface.co/{candidate}"
+
+
+def _display_or_na(value: Any) -> str:
+    v = str(value or "").strip()
+    return v if v else "n/a"
 
 
 def _read_dataset(csv_path: Path, limit: int | None) -> list[SampleRecord]:
@@ -282,6 +312,7 @@ def _build_article_markdown(report: dict[str, Any]) -> str:
     ts = report["generated_at_utc"]
     dataset_n = report["dataset"]["rows_evaluated"]
     refs = report.get("references", {})
+    paired_tests = report.get("paired_tests", {})
 
     def metric_line(task: str) -> str:
         a = report["metrics"]["a"]["tasks"].get(task, {})
@@ -294,12 +325,34 @@ def _build_article_markdown(report: dict[str, Any]) -> str:
             f"{model_b['id']} macro-F1={b['macro_f1']:.4f}, acc={b['accuracy']:.4f}."
         )
 
+    def paired_line(task: str) -> str:
+        p = paired_tests.get(task, {})
+        if not p:
+            return f"- **{task.upper()}**: paired significance test unavailable."
+        diff = float(p.get("accuracy_diff_a_minus_b", 0.0))
+        ci = p.get("accuracy_diff_ci95", [0.0, 0.0])
+        ci_low = float(ci[0]) if len(ci) > 0 else 0.0
+        ci_high = float(ci[1]) if len(ci) > 1 else 0.0
+        pval = float(p.get("mcnemar_p_value", 1.0))
+        significant = pval < 0.05
+        direction = (
+            f"{model_a['id']} better"
+            if diff > 0
+            else (f"{model_b['id']} better" if diff < 0 else "no difference in point estimate")
+        )
+        ci_note = "CI excludes 0" if (ci_low > 0 and ci_high > 0) or (ci_low < 0 and ci_high < 0) else "CI crosses 0"
+        sig_label = "significant" if significant else "not significant"
+        return (
+            f"- **{task.upper()}**: Acc Δ(A-B)={diff:.4f}, 95% CI=[{ci_low:.4f}, {ci_high:.4f}], "
+            f"p={pval:.6f} ({sig_label}; {direction}; {ci_note})."
+        )
+
     lines = [
         "# Comparative Evaluation of Arabic ITSM Classifiers",
         "",
         "## Abstract",
         (
-            f"This report compares two MARBERT-based Arabic ITSM checkpoints on a fixed labeled split "
+            f"This report compares two Arabic ITSM classification checkpoints on a fixed labeled split "
             f"({dataset_n} tickets), evaluating hierarchical classification quality and inference latency. "
             "The analysis follows a fixed offline protocol and includes paired statistical tests."
         ),
@@ -307,8 +360,12 @@ def _build_article_markdown(report: dict[str, Any]) -> str:
         "## Sources",
         f"- Dataset (Hugging Face): {refs.get('dataset_hf_url', 'n/a')}",
         f"- Evaluated dataset reference: {refs.get('dataset_hf_url', 'n/a')}",
-        f"- Model A page: {model_a.get('url', 'n/a')}",
-        f"- Model B page: {model_b.get('url', 'n/a')}",
+        f"- Model A page: {_display_or_na(model_a.get('url'))}",
+        f"- Model B page: {_display_or_na(model_b.get('url'))}",
+        "",
+        "## Model Mapping",
+        f"- Model A (`A`): `{model_a.get('id', 'n/a')}`",
+        f"- Model B (`B`): `{model_b.get('id', 'n/a')}`",
         "",
         "## Experimental Setup",
         f"- Evaluated split file: `{cfg['dataset_csv']}`",
@@ -329,6 +386,12 @@ def _build_article_markdown(report: dict[str, Any]) -> str:
         lines.append(metric_line("sentiment"))
     lines.extend(
         [
+            "",
+            "## Statistical Significance (Accuracy, paired tests)",
+            "- Decision rule: p < 0.05 is treated as statistically significant.",
+            paired_line("l1"),
+            paired_line("l2"),
+            paired_line("l3"),
             "",
             "## Notes on Interpretation",
             "- Macro-F1 is emphasized for class-imbalance robustness.",
@@ -629,13 +692,13 @@ def main() -> None:
             "a": {
                 "id": args.model_a_id,
                 "path": _public_model_path(args.model_a_path),
-                "url": args.model_a_url,
+                "url": _normalize_model_url(args.model_a_id, args.model_a_url),
                 "tasks": sorted(tasks_a),
             },
             "b": {
                 "id": args.model_b_id,
                 "path": _public_model_path(args.model_b_path),
-                "url": args.model_b_url,
+                "url": _normalize_model_url(args.model_b_id, args.model_b_url),
                 "tasks": sorted(tasks_b),
             },
         },

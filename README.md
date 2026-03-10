@@ -206,9 +206,9 @@ Optional arguments:
 python scripts/run_model_comparison.py ^
   --dataset-csv "data/processed/test.csv" ^
   --model-a-path "models/marbert_l1_l2_l3_best" ^
-  --model-b-path "models/marbert_multi_task_best" ^
+  --model-b-path "models/arabert_l1_l2_l3_best" ^
   --model-a-id "marbert-arabic-itsm-l3-categories" ^
-  --model-b-id "marbert-arabic-itsm-multitask" ^
+  --model-b-id "arabert-arabic-itsm-l3-categories" ^
   --split-name "test" ^
   --bootstrap-samples 1000
 ```

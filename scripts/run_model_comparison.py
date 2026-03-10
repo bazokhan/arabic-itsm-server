@@ -45,7 +45,7 @@ DEFAULT_MODEL_A_URL = ""
 DEFAULT_MODEL_B_URL = ""
 DEFAULT_DATASET_HF_URL = "https://huggingface.co/datasets/albaz2000/arabic-itsm-dataset"
 DEFAULT_MODEL_A_ID = "marbert-arabic-itsm-l3-categories"
-DEFAULT_MODEL_B_ID = "marbert-arabic-itsm-multitask"
+DEFAULT_MODEL_B_ID = "arabert-arabic-itsm-l3-categories"
 
 
 @dataclass

@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MODEL_DIRS=/data/models \
     HF_HOME=/data/hf_cache \
     DEFAULT_MODEL_ID=marbert-arabic-itsm-l3-categories \
-    HF_MODEL_REPOS=albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/marbert-arabic-itsm-multitask \
+    HF_MODEL_REPOS=albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/arabert-arabic-itsm-l3-categories \
     DB_PATH=/data/db/itsm.db
 
 WORKDIR /app

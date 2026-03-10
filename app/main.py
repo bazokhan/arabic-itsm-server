@@ -290,7 +290,7 @@ def _run_research_benchmark(
     dataset_url_override: str | None = None,
 ):
     model_a_id = (model_a_id_override or os.getenv("COMPARISON_MODEL_A_ID", "marbert-arabic-itsm-l3-categories")).strip()
-    model_b_id = (model_b_id_override or os.getenv("COMPARISON_MODEL_B_ID", "marbert-arabic-itsm-multitask")).strip()
+    model_b_id = (model_b_id_override or os.getenv("COMPARISON_MODEL_B_ID", "arabert-arabic-itsm-l3-categories")).strip()
     model_a_path = (model_a_path_override or os.getenv("COMPARISON_MODEL_A_PATH", "")).strip()
     model_b_path = (model_b_path_override or os.getenv("COMPARISON_MODEL_B_PATH", "")).strip()
     if not model_a_path and model_a_id in _profiles:
@@ -306,7 +306,7 @@ def _run_research_benchmark(
     ).strip()
     model_b_url = os.getenv(
         "COMPARISON_MODEL_B_URL",
-        "https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask",
+        "https://huggingface.co/albaz2000/arabert-arabic-itsm-l3-categories",
     ).strip()
     dataset_hf_url = os.getenv(
         "COMPARISON_DATASET_HF_URL",

@@ -15,7 +15,7 @@ On every container start:
 1. creates model/cache directories under `/data` AND the DB directory `/data/db/`
 2. downloads (or reuses) model snapshots from Hugging Face:
    - `albaz2000/marbert-arabic-itsm-l3-categories`
-   - `albaz2000/marbert-arabic-itsm-multitask`
+   - `albaz2000/arabert-arabic-itsm-l3-categories`
 3. starts the API with:
 
 ```bash
@@ -70,7 +70,7 @@ DEVICE=cpu
 MODEL_DIRS=/data/models
 HF_HOME=/data/hf_cache
 DEFAULT_MODEL_ID=marbert-arabic-itsm-l3-categories
-HF_MODEL_REPOS=albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/marbert-arabic-itsm-multitask
+HF_MODEL_REPOS=albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/arabert-arabic-itsm-l3-categories
 FORCE_MODEL_SYNC=0
 DB_PATH=/data/db/itsm.db
 ```
@@ -81,6 +81,9 @@ Optional:
 Notes:
 - `FORCE_MODEL_SYNC=0` keeps startup fast after first deploy (reuses persisted files).
 - Set `FORCE_MODEL_SYNC=1` temporarily if you need to force fresh model download.
+- If you are migrating from an older deployment that used `marbert-arabic-itsm-multitask`,
+  redeploy once with `FORCE_MODEL_SYNC=1` after updating `HF_MODEL_REPOS`, then set it
+  back to `0` on the next deploy.
 
 ## 7) Add Persistent Storage (Important)
 

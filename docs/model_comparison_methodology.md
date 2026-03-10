@@ -63,6 +63,20 @@ The script writes all outputs into `static/reports/`:
 
 The `/research` page is artifact-driven and renders these files without manual editing.
 
+## Running a Custom Comparison (e.g., Encoder Ablation)
+
+The script accepts `--model-a-path`, `--model-b-path`, `--model-a-id`, and `--model-b-id` to compare any two checkpoints. For the MARBERTv2 vs AraBERTv2 encoder ablation (EXP-006a vs EXP-007):
+
+```bash
+python scripts/run_model_comparison.py \
+    --model-a-path models/marbert_l1_l2_l3_best \
+    --model-b-path models/arabert_l1_l2_l3_best \
+    --model-a-id marbert-l1l2l3 \
+    --model-b-id arabert-l1l2l3
+```
+
+The script auto-detects which tasks each checkpoint supports (via head key shapes in `heads.pt`) and only computes paired statistics on tasks present in both models.
+
 ## Reporting Guidance (Thesis/Article)
 
 When citing results:

@@ -473,11 +473,110 @@ async def lifespan(app: FastAPI):
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
+_OPENAPI_TAGS = [
+    {
+        "name": "Models",
+        "description": "Discover, preload, and unload Arabic ITSM classifier checkpoints.",
+    },
+    {
+        "name": "Inference",
+        "description": (
+            "Classify Arabic IT service-management tickets. "
+            "Each ticket is described by an Arabic title and optional description. "
+            "Predictions cover up to 5 hierarchical tasks: **L1** (category), **L2** (sub-category), "
+            "**L3** (leaf category), **Priority**, and **Sentiment**."
+        ),
+    },
+    {
+        "name": "History",
+        "description": "Browse the persisted classification log stored in SQLite.",
+    },
+    {
+        "name": "Feedback",
+        "description": "Thumbs-up / thumbs-down ratings attached to classification records.",
+    },
+    {
+        "name": "Stats",
+        "description": "Aggregated usage and accuracy statistics.",
+    },
+    {
+        "name": "Monitoring",
+        "description": "Live CPU/memory metrics and 24 h history.",
+    },
+    {
+        "name": "Export",
+        "description": "Download the full classification database as CSV (zip) or SQL dump.",
+    },
+    {
+        "name": "Research",
+        "description": "Trigger an offline benchmark comparing two model checkpoints and regenerate research artefacts.",
+    },
+    {
+        "name": "Health",
+        "description": "Lightweight liveness probe.",
+    },
+]
+
+_API_DESCRIPTION = """\
+## Arabic ITSM Classifier — REST API
+
+Multi-model inference server for classifying **Arabic IT service-management tickets** into hierarchical categories.
+
+### Authentication
+No authentication is required for local or development deployments.
+
+### Ticket format
+All inference endpoints accept an `application/json` body with:
+- `title_ar` — Arabic ticket title *(required)*
+- `description_ar` — Arabic ticket body text *(optional, improves accuracy)*
+
+### Prediction tasks
+| Task | Labels | Description |
+|------|--------|-------------|
+| `l1` | 6  | Top-level service category |
+| `l2` | 16 | Sub-category |
+| `l3` | 48 | Leaf category |
+| `priority` | 5  | Ticket urgency |
+| `sentiment` | 4  | Requester sentiment |
+
+Each task result includes `label` (top prediction) and `top_k` (ranked alternatives with confidence scores).
+
+### Model discovery
+Checkpoint directories are discovered at startup from the `MODEL_DIRS` environment variable.
+Use `GET /api/models` to list available checkpoints and their load state.
+
+### Web UI pages
+| Path | Description |
+|------|-------------|
+| `/models` | Model gallery |
+| `/models/{id}` | Single-model classify form |
+| `/dashboard` | Classification history dashboard |
+| `/monitoring` | CPU / memory monitoring |
+| `/admin/export` | Data export |
+| `/research` | Offline benchmark runner |
+
+### OpenAPI spec
+- **Swagger UI** → `/swagger`
+- **ReDoc** → `/redoc`
+- **JSON spec** → `/openapi.json`
+"""
+
 app = FastAPI(
     title="Arabic ITSM Classifier",
-    description="Multi-model Arabic ITSM ticket classification API + web UI.",
+    description=_API_DESCRIPTION,
     version="3.0.0",
     lifespan=lifespan,
+    docs_url="/swagger",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    openapi_tags=_OPENAPI_TAGS,
+    contact={
+        "name": "Arabic ITSM Project",
+        "url": "https://huggingface.co/albaz2000",
+    },
+    license_info={
+        "name": "MIT",
+    },
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -510,11 +609,22 @@ class VisitorMiddleware(BaseHTTPMiddleware):
 app.add_middleware(VisitorMiddleware)
 
 
-# ── Pydantic models ────────────────────────────────────────────────────────────
+# ── Pydantic models — request bodies ──────────────────────────────────────────
 
 class TicketIn(BaseModel):
     title_ar: str
     description_ar: str = ""
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "title_ar": "مشكلة في الاتصال بالإنترنت",
+                    "description_ar": "لا يمكنني الاتصال بالإنترنت منذ الصباح، الشبكة ظاهرة لكن لا يوجد اتصال فعلي.",
+                }
+            ]
+        }
+    }
 
 
 class FeedbackIn(BaseModel):
@@ -522,6 +632,19 @@ class FeedbackIn(BaseModel):
     thumbs: str
     comment: str | None = None
     email: str | None = None
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "classification_id": 42,
+                    "thumbs": "up",
+                    "comment": "Accurate category, very helpful.",
+                    "email": None,
+                }
+            ]
+        }
+    }
 
 
 class ResearchRunIn(BaseModel):
@@ -534,10 +657,153 @@ class ResearchRunIn(BaseModel):
     model_a_path: str | None = None
     model_b_path: str | None = None
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "split_name": "test",
+                    "limit": 500,
+                    "model_a_id": "marbert-arabic-itsm-l3-categories",
+                    "model_b_id": "arabert-arabic-itsm-l3-categories",
+                }
+            ]
+        }
+    }
+
+
+# ── Pydantic models — responses ────────────────────────────────────────────────
+
+class ModelProfileItem(BaseModel):
+    id: str
+    name: str
+    path: str
+    description: str
+    loaded: bool
+    status: str
+    progress: int
+    tasks: list[str]
+
+
+class ModelListResponse(BaseModel):
+    default_model_id: str
+    models: list[ModelProfileItem]
+
+
+class ModelStatusResponse(BaseModel):
+    model_id: str
+    status: str
+    progress: int
+    message: str
+    loaded: bool
+    error: str | None = None
+
+
+class PreloadResponse(BaseModel):
+    model_id: str
+    status: str
+    progress: int
+    message: str
+    loaded: bool
+    error: str | None = None
+
+
+class UnloadResponse(BaseModel):
+    model_id: str
+    status: str
+    message: str
+
+
+class TopKEntry(BaseModel):
+    label: str
+    score: float
+
+
+class TaskPrediction(BaseModel):
+    label: str
+    score: float
+    top_k: list[TopKEntry]
+
+
+class ClassifyResponse(BaseModel):
+    model_id: str
+    tasks: list[str]
+    latency_ms: float
+    api_time_ms: float
+    classification_id: int | None = None
+    l1: TaskPrediction | None = None
+    l2: TaskPrediction | None = None
+    l3: TaskPrediction | None = None
+    priority: TaskPrediction | None = None
+    sentiment: TaskPrediction | None = None
+
+    model_config = {"extra": "allow"}
+
+
+class ClassifyAllResponse(BaseModel):
+    count: int
+    results: list[ClassifyResponse]
+
+
+class ClassificationRecord(BaseModel):
+    id: int
+    ticket_title: str
+    ticket_text: str | None = None
+    model_id: str
+    model_response: dict
+    api_time_ms: float | None = None
+    inference_time_ms: float | None = None
+    created_at: str
+
+    model_config = {"extra": "allow"}
+
+
+class ClassificationListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[ClassificationRecord]
+
+
+class FeedbackResponse(BaseModel):
+    feedback_id: int
+    status: str
+
+
+class HealthResponse(BaseModel):
+    status: str
+    profiles_count: int
+    loaded_models_count: int
+    default_model_id: str
+
+
+class ResearchStatusResponse(BaseModel):
+    status: str
+    started_at: float | None = None
+    finished_at: float | None = None
+    return_code: int | None = None
+    message: str
+    last_run_cmd: str | None = None
+    last_run_duration_sec: float | None = None
+    log_tail: list[str]
+
+    model_config = {"extra": "allow"}
+
+
+class ResearchRunResponse(BaseModel):
+    accepted: bool
+    message: str
+    status: ResearchStatusResponse
+
 
 # ── Model management routes ────────────────────────────────────────────────────
 
-@app.get("/api/models", summary="List available model profiles")
+@app.get(
+    "/api/models",
+    tags=["Models"],
+    summary="List available model profiles",
+    response_model=ModelListResponse,
+    responses={200: {"description": "All discovered checkpoints with their current load state."}},
+)
 async def list_models():
     items = []
     for model_id, profile in _profiles.items():
@@ -568,7 +834,16 @@ async def list_models():
     return {"default_model_id": _default_model_id(), "models": items}
 
 
-@app.get("/api/models/{model_id}/status", summary="Get model loading status")
+@app.get(
+    "/api/models/{model_id}/status",
+    tags=["Models"],
+    summary="Get model loading status",
+    response_model=ModelStatusResponse,
+    responses={
+        200: {"description": "Current load state (idle | loading | ready | error) with progress 0-100."},
+        404: {"description": "Unknown model_id."},
+    },
+)
 async def model_status(model_id: str):
     if model_id not in _profiles:
         raise HTTPException(status_code=404, detail=f"Unknown model_id: {model_id}")
@@ -595,7 +870,16 @@ async def model_status(model_id: str):
     }
 
 
-@app.post("/api/models/{model_id}/preload", summary="Start model loading in background")
+@app.post(
+    "/api/models/{model_id}/preload",
+    tags=["Models"],
+    summary="Start model loading in background",
+    response_model=PreloadResponse,
+    responses={
+        200: {"description": "Load started (or already in progress / already loaded)."},
+        404: {"description": "Unknown model_id."},
+    },
+)
 async def preload_model(model_id: str):
     if model_id not in _profiles:
         raise HTTPException(status_code=404, detail=f"Unknown model_id: {model_id}")
@@ -623,7 +907,16 @@ async def preload_model(model_id: str):
     }
 
 
-@app.post("/api/models/{model_id}/unload", summary="Unload model from memory (free RAM)")
+@app.post(
+    "/api/models/{model_id}/unload",
+    tags=["Models"],
+    summary="Unload model from memory (free RAM/VRAM)",
+    response_model=UnloadResponse,
+    responses={
+        200: {"description": "Model unloaded; GPU/CPU memory freed."},
+        404: {"description": "Unknown model_id."},
+    },
+)
 async def unload_model(model_id: str):
     if model_id not in _profiles:
         raise HTTPException(status_code=404, detail=f"Unknown model_id: {model_id}")
@@ -645,8 +938,23 @@ async def unload_model(model_id: str):
 
 # ── Inference routes ───────────────────────────────────────────────────────────
 
-@app.post("/api/classify", summary="Classify an Arabic ticket with selected model")
-async def classify(body: TicketIn, model_id: str | None = Query(default=None)):
+@app.post(
+    "/api/classify",
+    tags=["Inference"],
+    summary="Classify an Arabic ticket with a selected model",
+    response_model=ClassifyResponse,
+    responses={
+        200: {"description": "Predictions for all tasks supported by the chosen checkpoint."},
+        400: {"description": "Empty title_ar."},
+        404: {"description": "Unknown model_id."},
+        500: {"description": "Model failed to load."},
+        503: {"description": "No model profiles available."},
+    },
+)
+async def classify(
+    body: TicketIn,
+    model_id: str | None = Query(default=None, description="Checkpoint ID from `/api/models`. Defaults to the server default."),
+):
     api_start = time.perf_counter()
 
     if not body.title_ar.strip():
@@ -682,7 +990,17 @@ async def classify(body: TicketIn, model_id: str | None = Query(default=None)):
     return result
 
 
-@app.post("/api/classify/all", summary="Classify one ticket with all discovered models")
+@app.post(
+    "/api/classify/all",
+    tags=["Inference"],
+    summary="Classify one ticket with every discovered model",
+    response_model=ClassifyAllResponse,
+    responses={
+        200: {"description": "Array of per-model prediction results."},
+        400: {"description": "Empty title_ar."},
+        503: {"description": "No model profiles available."},
+    },
+)
 async def classify_all(body: TicketIn):
     if not body.title_ar.strip():
         raise HTTPException(status_code=400, detail="title_ar must not be empty")
@@ -701,17 +1019,32 @@ async def classify_all(body: TicketIn):
 
 # ── Classification history routes ──────────────────────────────────────────────
 
-@app.get("/api/classifications", summary="Paginated classification history")
+@app.get(
+    "/api/classifications",
+    tags=["History"],
+    summary="Paginated classification history",
+    response_model=ClassificationListResponse,
+    responses={200: {"description": "Page of classification records with total count."}},
+)
 async def api_list_classifications(
-    limit: int = Query(default=20, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100, description="Records per page (1-100)."),
+    offset: int = Query(default=0, ge=0, description="Zero-based row offset for pagination."),
 ):
     rows = list_classifications(limit=limit, offset=offset)
     total = count_classifications()
     return {"total": total, "limit": limit, "offset": offset, "items": rows}
 
 
-@app.get("/api/classifications/{classification_id}", summary="Single classification record")
+@app.get(
+    "/api/classifications/{classification_id}",
+    tags=["History"],
+    summary="Fetch a single classification record",
+    response_model=ClassificationRecord,
+    responses={
+        200: {"description": "Full classification record including the raw model response JSON."},
+        404: {"description": "No record with that ID."},
+    },
+)
 async def api_get_classification(classification_id: int):
     row = get_classification(classification_id)
     if row is None:
@@ -721,7 +1054,16 @@ async def api_get_classification(classification_id: int):
 
 # ── Feedback route ─────────────────────────────────────────────────────────────
 
-@app.post("/api/feedback", summary="Submit thumbs up/down feedback")
+@app.post(
+    "/api/feedback",
+    tags=["Feedback"],
+    summary="Submit thumbs-up / thumbs-down feedback on a classification",
+    response_model=FeedbackResponse,
+    responses={
+        200: {"description": "Feedback persisted; returns new feedback_id."},
+        400: {"description": "Invalid thumbs value or unknown classification_id."},
+    },
+)
 async def api_feedback(body: FeedbackIn):
     if body.thumbs not in ("up", "down"):
         raise HTTPException(status_code=400, detail="thumbs must be 'up' or 'down'")
@@ -739,14 +1081,32 @@ async def api_feedback(body: FeedbackIn):
 
 # ── Stats route ────────────────────────────────────────────────────────────────
 
-@app.get("/api/stats", summary="Aggregated classification and feedback stats")
+@app.get(
+    "/api/stats",
+    tags=["Stats"],
+    summary="Aggregated classification and feedback stats",
+    responses={200: {"description": "Total classifications, feedback thumbs counts, per-model breakdown, daily histogram."}},
+)
 async def api_stats():
     return get_stats()
 
 
 # ── Monitoring route ───────────────────────────────────────────────────────────
 
-@app.get("/api/monitoring", summary="Current process stats + 24h history")
+@app.get(
+    "/api/monitoring",
+    tags=["Monitoring"],
+    summary="Current process stats and 24 h CPU/memory history",
+    responses={
+        200: {
+            "description": (
+                "`current` — live CPU %, RSS MB, uptime seconds, active requests. "
+                "`history_24h` — 60-second snapshots from the last 24 hours. "
+                "`visitor_stats` — unique IPs and top paths."
+            )
+        }
+    },
+)
 async def api_monitoring():
     proc = psutil.Process()
     uptime_seconds = time.time() - _server_start_time
@@ -764,7 +1124,17 @@ async def api_monitoring():
 
 # ── Export routes ──────────────────────────────────────────────────────────────
 
-@app.get("/api/export/csv", summary="Download all classifications as CSV zip")
+@app.get(
+    "/api/export/csv",
+    tags=["Export"],
+    summary="Download all classifications as UTF-8 CSV (zip)",
+    responses={
+        200: {
+            "description": "ZIP archive containing `classifications.csv` (UTF-8 BOM for Excel compatibility).",
+            "content": {"application/zip": {}},
+        }
+    },
+)
 async def api_export_csv():
     rows = export_classifications_csv_rows()
 
@@ -788,7 +1158,17 @@ async def api_export_csv():
     )
 
 
-@app.get("/api/export/sql", summary="Download full DB as SQL dump")
+@app.get(
+    "/api/export/sql",
+    tags=["Export"],
+    summary="Download full SQLite database as a plain-text SQL dump",
+    responses={
+        200: {
+            "description": "Plain-text SQL dump of all four tables (classifications, feedback, monitoring_log, visitors).",
+            "content": {"text/plain": {}},
+        }
+    },
+)
 async def api_export_sql():
     dump = export_sql_dump()
 
@@ -804,13 +1184,40 @@ async def api_export_sql():
 
 # ── Research benchmark routes ──────────────────────────────────────────────────
 
-@app.get("/api/research/status", summary="Get offline benchmark execution status")
+@app.get(
+    "/api/research/status",
+    tags=["Research"],
+    summary="Get offline benchmark execution status",
+    response_model=ResearchStatusResponse,
+    responses={
+        200: {
+            "description": (
+                "`status` is one of `idle | running | success | error`. "
+                "`log_tail` contains the last 120 lines of stdout/stderr from the benchmark script."
+            )
+        }
+    },
+)
 async def api_research_status():
     with _research_lock:
         return dict(_research_state)
 
 
-@app.post("/api/research/run", summary="Run offline benchmark and regenerate research artifacts")
+@app.post(
+    "/api/research/run",
+    tags=["Research"],
+    summary="Trigger the offline model-comparison benchmark",
+    response_model=ResearchRunResponse,
+    responses={
+        200: {
+            "description": (
+                "`accepted: true` — benchmark started in a background thread. "
+                "`accepted: false` — a benchmark is already running."
+            )
+        },
+        400: {"description": "Invalid request body (e.g. non-positive limit)."},
+    },
+)
 async def api_research_run(body: ResearchRunIn):
     if body.limit is not None and body.limit <= 0:
         raise HTTPException(status_code=400, detail="limit must be positive when provided")
@@ -842,7 +1249,20 @@ async def api_research_run(body: ResearchRunIn):
 
 # ── Health ─────────────────────────────────────────────────────────────────────
 
-@app.get("/api/health", summary="Health check")
+@app.get(
+    "/api/health",
+    tags=["Health"],
+    summary="Server liveness probe",
+    response_model=HealthResponse,
+    responses={
+        200: {
+            "description": (
+                "`status` is `ok` when at least one model profile has been discovered, "
+                "otherwise `models_not_loaded`."
+            )
+        }
+    },
+)
 async def health():
     return {
         "status": "ok" if _profiles else "models_not_loaded",

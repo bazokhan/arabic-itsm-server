@@ -715,13 +715,13 @@ class UnloadResponse(BaseModel):
 
 class TopKEntry(BaseModel):
     label: str
-    score: float
+    prob: float
 
 
 class TaskPrediction(BaseModel):
     label: str
-    score: float
-    top_k: list[TopKEntry]
+    confidence: float
+    top3: list[TopKEntry]
 
 
 class ClassifyResponse(BaseModel):
@@ -955,6 +955,8 @@ async def classify(
     body: TicketIn,
     model_id: str | None = Query(default=None, description="Checkpoint ID from `/api/models`. Defaults to the server default."),
 ):
+    import asyncio
+
     api_start = time.perf_counter()
 
     if not body.title_ar.strip():
@@ -965,7 +967,15 @@ async def classify(
         raise HTTPException(status_code=503, detail="No model profiles available")
 
     clf = _get_model(target_model)
-    result = clf.predict(body.title_ar, body.description_ar)
+
+    # Run blocking CPU/GPU inference in a thread so the event loop is not stalled
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, clf.predict, body.title_ar, body.description_ar)
+    except Exception as exc:
+        print(f"[error] Inference failed for model {target_model}: {exc}", flush=True)
+        raise HTTPException(status_code=500, detail=f"Inference error: {exc}")
+
     result["model_id"] = target_model
     result["tasks"] = clf.tasks
 
@@ -1002,15 +1012,22 @@ async def classify(
     },
 )
 async def classify_all(body: TicketIn):
+    import asyncio
+
     if not body.title_ar.strip():
         raise HTTPException(status_code=400, detail="title_ar must not be empty")
     if not _profiles:
         raise HTTPException(status_code=503, detail="No model profiles available")
 
+    loop = asyncio.get_event_loop()
     results = []
     for mid in _profiles:
         clf = _get_model(mid)
-        result = clf.predict(body.title_ar, body.description_ar)
+        try:
+            result = await loop.run_in_executor(None, clf.predict, body.title_ar, body.description_ar)
+        except Exception as exc:
+            print(f"[error] Inference failed for model {mid}: {exc}", flush=True)
+            raise HTTPException(status_code=500, detail=f"Inference error (model {mid}): {exc}")
         result["model_id"] = mid
         result["tasks"] = clf.tasks
         results.append(result)

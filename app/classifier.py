@@ -18,7 +18,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoConfig, AutoModel, AutoTokenizer, T5EncoderModel
 
 # ── Label maps (source: arabic-itsm-classification/data/processed/label_encoders.pkl) ─
 LABELS: dict[str, list[str]] = {
@@ -83,8 +83,10 @@ class _InferenceModel(nn.Module):
 
     def __init__(self, encoder_path: str, head_specs: dict[str, int]):
         super().__init__()
-        self.encoder = AutoModel.from_pretrained(encoder_path)
-        hidden = self.encoder.config.hidden_size
+        self.encoder, self._pooling = self._load_encoder(encoder_path)
+        hidden = getattr(self.encoder.config, "hidden_size", None) or getattr(
+            self.encoder.config, "d_model"
+        )
         self.heads = nn.ModuleDict(
             {t: nn.Sequential(nn.Dropout(0.1), nn.Linear(hidden, n))
              for t, n in head_specs.items()}
@@ -95,12 +97,24 @@ class _InferenceModel(nn.Module):
         )
         self.eval()
 
+    @staticmethod
+    def _load_encoder(encoder_path: str) -> tuple[nn.Module, str]:
+        config = AutoConfig.from_pretrained(encoder_path)
+        if config.is_encoder_decoder and config.model_type in {"t5", "mt5", "byt5", "umt5"}:
+            return T5EncoderModel.from_pretrained(encoder_path, config=config), "masked_mean"
+        return AutoModel.from_pretrained(encoder_path, config=config), "cls"
+
     @torch.no_grad()
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> dict:
-        cls = self.encoder(
+        hidden = self.encoder(
             input_ids=input_ids, attention_mask=attention_mask
-        ).last_hidden_state[:, 0]
-        return {task: head(cls) for task, head in self.heads.items()}
+        ).last_hidden_state
+        if self._pooling == "masked_mean":
+            mask = attention_mask.unsqueeze(-1).type_as(hidden)
+            pooled = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+        else:
+            pooled = hidden[:, 0]
+        return {task: head(pooled) for task, head in self.heads.items()}
 
 
 def _task_labels(task: str, n_classes: int) -> list[str]:

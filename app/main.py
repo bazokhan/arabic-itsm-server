@@ -94,12 +94,13 @@ _research_lock = threading.RLock()
 
 def _discover_profiles() -> dict[str, dict]:
     """
-    Discover model profiles from local directories.
-    A model profile is any directory containing heads.pt.
+    Discover model profiles from local directories and optional Hugging Face repo ids.
+    A local model profile is any directory containing heads.pt.
 
     Discovery sources (in order):
     1. MODEL_DIRS env var — semicolon-separated base directories scanned for subfolders
     2. MULTITASK_MODEL_PATH env var — direct path to a single multi-task checkpoint
+    3. HF_MODEL_REPOS env var — comma-separated Hugging Face model repo ids
     """
     raw_dirs = os.getenv("MODEL_DIRS", "")
     dirs = [Path(p.strip()) for p in raw_dirs.split(";") if p.strip()]
@@ -107,14 +108,18 @@ def _discover_profiles() -> dict[str, dict]:
     profiles: dict[str, dict] = {}
     used_ids: set[str] = set()
 
-    def _register(child: Path):
-        model_id = child.name.lower().replace(" ", "_")
+    def _unique_model_id(raw_id: str) -> str:
+        model_id = raw_id.lower().replace(" ", "_")
         if model_id in used_ids:
             suffix = 2
             while f"{model_id}_{suffix}" in used_ids:
                 suffix += 1
             model_id = f"{model_id}_{suffix}"
         used_ids.add(model_id)
+        return model_id
+
+    def _register(child: Path):
+        model_id = _unique_model_id(child.name)
         profiles[model_id] = {
             "id": model_id,
             "name": child.name,
@@ -140,6 +145,20 @@ def _discover_profiles() -> dict[str, dict]:
             p["path"] for p in profiles.values()
         }:
             _register(mt)
+
+    raw_hf_repos = os.getenv("HF_MODEL_REPOS", "")
+    for repo_id in [r.strip() for r in raw_hf_repos.split(",") if r.strip()]:
+        base_name = repo_id.rsplit("/", 1)[-1]
+        normalized_id = base_name.lower().replace(" ", "_")
+        if normalized_id in profiles:
+            continue
+        model_id = _unique_model_id(base_name)
+        profiles[model_id] = {
+            "id": model_id,
+            "name": base_name,
+            "path": repo_id,
+            "description": f"Hugging Face model repo {repo_id}",
+        }
 
     return profiles
 

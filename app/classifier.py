@@ -100,7 +100,7 @@ class _InferenceModel(nn.Module):
     @staticmethod
     def _load_encoder(encoder_path: str) -> tuple[nn.Module, str]:
         config = AutoConfig.from_pretrained(encoder_path)
-        if config.is_encoder_decoder and config.model_type in {"t5", "mt5", "byt5", "umt5"}:
+        if config.model_type in {"t5", "mt5", "byt5", "umt5"}:
             return T5EncoderModel.from_pretrained(encoder_path, config=config), "masked_mean"
         return AutoModel.from_pretrained(encoder_path, config=config), "cls"
 

@@ -15,7 +15,7 @@ from huggingface_hub import snapshot_download
 
 repos_raw = os.getenv(
     "HF_MODEL_REPOS",
-    "albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/arabert-arabic-itsm-l3-categories,albaz2000/byt5-arabic-itsm-l3-categories",
+    "albaz2000/marbert-arabic-itsm-l3-categories,albaz2000/arabert-arabic-itsm-l3-categories,albaz2000/byt5-arabic-itsm-l3-categories,albaz2000/egybert-itsm-l3-categories",
 )
 model_root = os.getenv("MODEL_DIRS", "/data/models")
 force = os.getenv("FORCE_MODEL_SYNC", "0").strip() == "1"

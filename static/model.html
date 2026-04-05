@@ -1,436 +1,734 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" dir="ltr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ticket Classification — Arabic ITSM</title>
-  <link rel="stylesheet" href="/static/common.css">
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <style>
-    .model-meta { color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem; }
-    .profile-box {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--bg-elevated);
-      padding: 0.9rem 1rem;
-      margin-bottom: 1rem;
-    }
-    .profile-box p { margin: 0.45rem 0 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
-    .profile-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 0.5rem;
-      margin-top: 0.7rem;
-    }
-    .profile-cell {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.45rem 0.55rem;
-      background: var(--surface);
-    }
-    .profile-k { display: block; font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-    .profile-v { display: block; margin-top: 0.1rem; font-size: 0.79rem; color: var(--text); }
-    .profile-hero { margin-top: 0.75rem; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-    .profile-hero img { width: 100%; height: 160px; object-fit: cover; display: block; }
-    .samples { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .sample {
-      border: 1px solid var(--border);
-      background: var(--bg-elevated);
-      color: var(--text-secondary);
-      border-radius: 999px;
-      padding: 0.4rem 0.75rem;
-      font-size: 0.8125rem;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .sample:hover { background: var(--surface); border-color: var(--text-muted); }
-    .submit-btn { width: 100%; padding: 0.75rem; margin-top: 0.5rem; }
-    .error-box {
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
-      background: var(--error-bg);
-      color: var(--error-text);
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem;
-      display: none;
-    }
-    .latency-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-    .latency { color: var(--text-muted); font-size: 0.8125rem; }
-    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-    .task-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem;
-      box-shadow: var(--shadow);
-    }
-    .task-card h3 { font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
-    .task-label { font-size: 0.9375rem; font-weight: 600; }
-    .task-conf { font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem; }
-    .task-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 0.5rem; }
-    .task-fill { height: 100%; border-radius: 999px; background: var(--accent); }
-    .alts { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); }
-    .alt-row { display: flex; justify-content: space-between; font-size: 0.8125rem; margin-top: 0.5rem; }
-    .alt-bar { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; margin-top: 0.25rem; }
-    .alt-fill { height: 100%; background: var(--text-muted); border-radius: 999px; }
-    .section-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ticket Classification — Arabic ITSM</title>
+    <link rel="stylesheet" href="/static/common.css" />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+      .model-meta {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        margin-bottom: 1rem;
+      }
+      .profile-box {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg-elevated);
+        padding: 0.9rem 1rem;
+        margin-bottom: 1rem;
+      }
+      .profile-box p {
+        margin: 0.45rem 0 0;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.5rem;
+        margin-top: 0.7rem;
+      }
+      .profile-cell {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.45rem 0.55rem;
+        background: var(--surface);
+      }
+      .profile-k {
+        display: block;
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .profile-v {
+        display: block;
+        margin-top: 0.1rem;
+        font-size: 0.79rem;
+        color: var(--text);
+      }
+      .profile-hero {
+        margin-top: 0.75rem;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .profile-hero img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        display: block;
+      }
+      .samples {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .sample {
+        border: 1px solid var(--border);
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        border-radius: 999px;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8125rem;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      .sample:hover {
+        background: var(--surface);
+        border-color: var(--text-muted);
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+      }
+      .error-box {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        background: var(--error-bg);
+        color: var(--error-text);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        display: none;
+      }
+      .latency-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .latency {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+      }
+      .results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+      }
+      .task-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        box-shadow: var(--shadow);
+      }
+      .task-card h3 {
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+      }
+      .task-label {
+        font-size: 0.9375rem;
+        font-weight: 600;
+      }
+      .task-conf {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+      }
+      .task-bar {
+        height: 6px;
+        background: var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+      }
+      .task-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+      .alts {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed var(--border);
+      }
+      .alt-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8125rem;
+        margin-top: 0.5rem;
+      }
+      .alt-bar {
+        height: 4px;
+        background: var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 0.25rem;
+      }
+      .alt-fill {
+        height: 100%;
+        background: var(--text-muted);
+        border-radius: 999px;
+      }
+      .section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.5rem;
+      }
 
-    /* Inline feedback card */
-    .feedback-card {
-      margin-top: 1.5rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.25rem 1.5rem;
-      box-shadow: var(--shadow);
-      animation: slideIn 0.25s ease;
-    }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .feedback-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.875rem; gap: 1rem; flex-wrap: wrap; }
-    .feedback-card-title { font-size: 0.9375rem; font-weight: 600; }
-    .feedback-card-sub { font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.125rem; }
-    .inline-thumbs { display: flex; gap: 0.5rem; }
-    .inline-thumb {
-      padding: 0.5rem 1.125rem;
-      font-size: 1.25rem;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-elevated);
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, transform 0.1s;
-      line-height: 1;
-    }
-    .inline-thumb:hover { border-color: var(--text-muted); transform: scale(1.08); }
-    .inline-thumb.selected-up { border-color: #16a34a; background: var(--success-bg); }
-    .inline-thumb.selected-down { border-color: #b91c1c; background: var(--error-bg); }
-    .feedback-extra { margin-top: 0.875rem; display: flex; gap: 0.75rem; flex-wrap: wrap; }
-    .feedback-extra .form-textarea { min-height: 64px; flex: 2; min-width: 180px; }
-    .feedback-extra .form-input { flex: 1; min-width: 140px; height: fit-content; align-self: flex-start; }
-    .feedback-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; align-items: center; flex-wrap: wrap; }
-    .feedback-thanks { display: flex; align-items: center; gap: 0.5rem; color: var(--success-text); font-size: 0.9375rem; font-weight: 500; }
-  </style>
-</head>
-<body>
-  <div class="page-wide" style="padding-top: 2rem;">
-    <header class="header">
-      <div class="header-brand">
-        <h1 id="title">...</h1>
-        <p id="subtitle" style="color:var(--text-muted);font-size:0.8125rem;"></p>
+      /* Inline feedback card */
+      .feedback-card {
+        margin-top: 1.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem 1.5rem;
+        box-shadow: var(--shadow);
+        animation: slideIn 0.25s ease;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .feedback-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.875rem;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .feedback-card-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+      }
+      .feedback-card-sub {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-top: 0.125rem;
+      }
+      .inline-thumbs {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .inline-thumb {
+        padding: 0.5rem 1.125rem;
+        font-size: 1.25rem;
+        border: 2px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg-elevated);
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s,
+          transform 0.1s;
+        line-height: 1;
+      }
+      .inline-thumb:hover {
+        border-color: var(--text-muted);
+        transform: scale(1.08);
+      }
+      .inline-thumb.selected-up {
+        border-color: #16a34a;
+        background: var(--success-bg);
+      }
+      .inline-thumb.selected-down {
+        border-color: #b91c1c;
+        background: var(--error-bg);
+      }
+      .feedback-extra {
+        margin-top: 0.875rem;
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .feedback-extra .form-textarea {
+        min-height: 64px;
+        flex: 2;
+        min-width: 180px;
+      }
+      .feedback-extra .form-input {
+        flex: 1;
+        min-width: 140px;
+        height: fit-content;
+        align-self: flex-start;
+      }
+      .feedback-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .feedback-thanks {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--success-text);
+        font-size: 0.9375rem;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wide" style="padding-top: 2rem">
+      <header class="header">
+        <div class="header-brand">
+          <h1 id="title">...</h1>
+          <p
+            id="subtitle"
+            style="color: var(--text-muted); font-size: 0.8125rem"
+          ></p>
+        </div>
+        <div class="header-actions">
+          <a class="btn nav-link" href="/models">
+            <i data-lucide="layout-grid" style="width: 16px; height: 16px"></i>
+            <span data-i18n="nav_catalog">الكتالوج</span>
+          </a>
+          <a class="btn nav-link" href="/dashboard">
+            <i data-lucide="bar-chart-2" style="width: 16px; height: 16px"></i>
+            <span data-i18n="nav_dashboard">لوحة البيانات</span>
+          </a>
+          <a class="btn nav-link" href="/research">
+            <i
+              data-lucide="flask-conical"
+              style="width: 16px; height: 16px"
+            ></i>
+            <span data-i18n="nav_research">مقارنة بحثية</span>
+          </a>
+          <button class="btn-lang" id="langBtn" type="button">عر</button>
+          <button
+            class="btn-icon"
+            id="themeBtn"
+            type="button"
+            aria-label="Toggle theme"
+          >
+            <i
+              data-lucide="moon"
+              class="icon-dark"
+              style="width: 18px; height: 18px"
+            ></i>
+            <i
+              data-lucide="sun"
+              class="icon-light hidden"
+              style="width: 18px; height: 18px"
+            ></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="status-box warn" id="statusBox">
+        <div id="statusText" data-i18n="status_preparing">جاري الإعداد...</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="loadProgress"></div>
+        </div>
       </div>
-      <div class="header-actions">
-        <a class="btn nav-link" href="/models">
-          <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
-          <span data-i18n="nav_catalog">الكتالوج</span>
-        </a>
-        <a class="btn nav-link" href="/dashboard">
-          <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i>
-          <span data-i18n="nav_dashboard">لوحة البيانات</span>
-        </a>
-        <a class="btn nav-link" href="/research">
-          <i data-lucide="flask-conical" style="width:16px;height:16px;"></i>
-          <span data-i18n="nav_research">مقارنة بحثية</span>
-        </a>
-        <button class="btn-lang" id="langBtn" type="button">عر</button>
-        <button class="btn-icon" id="themeBtn" type="button" aria-label="Toggle theme">
-          <i data-lucide="moon" class="icon-dark" style="width:18px;height:18px;"></i>
-          <i data-lucide="sun" class="icon-light hidden" style="width:18px;height:18px;"></i>
+
+      <section class="card">
+        <div class="model-meta" id="meta"></div>
+        <div class="profile-box" id="profileBox"></div>
+
+        <p class="section-title" data-i18n="samples_label">أمثلة سريعة</p>
+        <div class="samples" id="samples"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="title_ar">
+            <span data-i18n="field_title">عنوان التذكرة</span>
+            <span class="tooltip" style="margin-right: 4px">
+              <span class="tip-icon">?</span>
+              <span class="tooltip-text" data-i18n="tip_title"
+                >أدخل العنوان المختصر للمشكلة أو الطلب — مثل: "الـ VPN مش
+                شغال"</span
+              >
+            </span>
+          </label>
+          <input
+            id="title_ar"
+            type="text"
+            class="form-input"
+            placeholder="مثال: الـ VPN مش شغال"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="description_ar">
+            <span data-i18n="field_desc">وصف المشكلة (اختياري)</span>
+          </label>
+          <textarea
+            id="description_ar"
+            class="form-textarea"
+            placeholder="اكتب التفاصيل هنا"
+          ></textarea>
+        </div>
+        <button
+          class="btn btn-primary submit-btn"
+          id="btn"
+          disabled
+          data-i18n="btn_loading"
+        >
+          تحميل النموذج...
         </button>
+        <div class="error-box" id="error"></div>
+      </section>
+
+      <!-- Latency + dashboard link (shown after classify) -->
+      <div id="afterResults" class="hidden" style="margin-top: 1rem">
+        <div class="latency-row">
+          <div class="latency" id="latency"></div>
+          <a class="btn" href="/dashboard" style="font-size: 0.8125rem">
+            <i data-lucide="bar-chart-2" style="width: 14px; height: 14px"></i>
+            <span data-i18n="btn_view_dashboard">عرض في لوحة البيانات</span>
+          </a>
+        </div>
       </div>
-    </header>
 
-    <div class="status-box warn" id="statusBox">
-      <div id="statusText" data-i18n="status_preparing">جاري الإعداد...</div>
-      <div class="progress-bar"><div class="progress-fill" id="loadProgress"></div></div>
-    </div>
+      <!-- Results grid -->
+      <section class="results-grid" id="results"></section>
 
-    <section class="card">
-      <div class="model-meta" id="meta"></div>
-      <div class="profile-box" id="profileBox"></div>
-
-      <p class="section-title" data-i18n="samples_label">أمثلة سريعة</p>
-      <div class="samples" id="samples"></div>
-
-      <div class="form-group">
-        <label class="form-label" for="title_ar">
-          <span data-i18n="field_title">عنوان التذكرة</span>
-          <span class="tooltip" style="margin-right:4px;">
-            <span class="tip-icon">?</span>
-            <span class="tooltip-text" data-i18n="tip_title">أدخل العنوان المختصر للمشكلة أو الطلب — مثل: "الـ VPN مش شغال"</span>
-          </span>
-        </label>
-        <input id="title_ar" type="text" class="form-input" placeholder="مثال: الـ VPN مش شغال">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="description_ar">
-          <span data-i18n="field_desc">وصف المشكلة (اختياري)</span>
-        </label>
-        <textarea id="description_ar" class="form-textarea" placeholder="اكتب التفاصيل هنا"></textarea>
-      </div>
-      <button class="btn btn-primary submit-btn" id="btn" disabled data-i18n="btn_loading">تحميل النموذج...</button>
-      <div class="error-box" id="error"></div>
-    </section>
-
-    <!-- Latency + dashboard link (shown after classify) -->
-    <div id="afterResults" class="hidden" style="margin-top:1rem;">
-      <div class="latency-row">
-        <div class="latency" id="latency"></div>
-        <a class="btn" href="/dashboard" style="font-size:0.8125rem;">
-          <i data-lucide="bar-chart-2" style="width:14px;height:14px;"></i>
-          <span data-i18n="btn_view_dashboard">عرض في لوحة البيانات</span>
-        </a>
+      <!-- Inline feedback card (shown after classify) -->
+      <div id="feedbackSection" class="hidden">
+        <!-- feedback-card injected by JS so the slide-in animation fires each time -->
       </div>
     </div>
 
-    <!-- Results grid -->
-    <section class="results-grid" id="results"></section>
+    <script>
+      // ── i18n ───────────────────────────────────────────────────────────────────
+      const T = {
+        ar: {
+          nav_catalog: "الكتالوج",
+          nav_dashboard: "لوحة البيانات",
+          nav_research: "مقارنة بحثية",
+          status_preparing: "جاري الإعداد...",
+          status_ready: "النموذج جاهز للاستخدام",
+          status_error: "فشل تحميل النموذج",
+          field_title: "عنوان التذكرة",
+          field_desc: "وصف المشكلة (اختياري)",
+          ph_title: "مثال: الـ VPN مش شغال",
+          ph_desc: "اكتب التفاصيل هنا",
+          tip_title: "أدخل العنوان المختصر للمشكلة أو الطلب",
+          tip_conf:
+            "نسبة ثقة النموذج بالتصنيف — كلما زادت كلما كانت النتيجة أدق",
+          tip_l1: "التصنيف الرئيسي (المستوى الأول) — 6 فئات رئيسية",
+          tip_l2: "التصنيف الفرعي (المستوى الثاني) — 16 فئة فرعية",
+          tip_l3: "نوع المشكلة التفصيلي (المستوى الثالث) — 48 نوعاً",
+          prof_best_for: "مناسب لـ",
+          prof_params: "المعاملات",
+          prof_downloads: "تنزيلات شهرية",
+          prof_base: "الأساس",
+          prof_hf_link: "عرض على Hugging Face",
+          btn_loading: "تحميل النموذج...",
+          btn_classify: "تصنيف التذكرة",
+          btn_classifying: "جاري التصنيف...",
+          btn_view_dashboard: "عرض في لوحة البيانات",
+          samples_label: "أمثلة سريعة",
+          err_empty_title: "عنوان التذكرة مطلوب",
+          err_model_loading: "النموذج قيد التحميل. يرجى الانتظار.",
+          fb_heading: "هل كانت النتيجة صحيحة؟",
+          fb_sub: "تقييمك يساعدنا في تحسين النموذج",
+          fb_comment_ph: "ما الذي كان صحيحاً أو خاطئاً؟ (اختياري)",
+          fb_email_ph: "بريدك الإلكتروني (اختياري)",
+          fb_submit: "إرسال التقييم",
+          fb_skip: "تخطي",
+          fb_thanks: "شكراً على تقييمك! 🎉",
+          fb_err_select: "يرجى الضغط على 👍 أو 👎 أولاً",
+          alts_title: "بدائل",
+          latency_ms: "وقت الاستجابة",
+        },
+        en: {
+          nav_catalog: "Catalog",
+          nav_dashboard: "Dashboard",
+          nav_research: "Research",
+          status_preparing: "Preparing model...",
+          status_ready: "Model ready for inference",
+          status_error: "Model loading failed",
+          field_title: "Ticket Title",
+          field_desc: "Problem Description (optional)",
+          ph_title: "e.g., VPN is not working",
+          ph_desc: "Describe the issue here",
+          tip_title: "Enter a short summary of the request or problem",
+          tip_conf:
+            "Model confidence in this classification — higher is more reliable",
+          tip_l1: "Primary classification (Level 1) — 6 main categories",
+          tip_l2: "Sub-classification (Level 2) — 16 sub-categories",
+          tip_l3: "Detailed issue type (Level 3) — 48 types",
+          prof_best_for: "Best for",
+          prof_params: "Parameters",
+          prof_downloads: "Monthly downloads",
+          prof_base: "Base model",
+          prof_hf_link: "View on Hugging Face",
+          btn_loading: "Loading model...",
+          btn_classify: "Classify Ticket",
+          btn_classifying: "Classifying...",
+          btn_view_dashboard: "View in Dashboard",
+          samples_label: "Quick Examples",
+          err_empty_title: "Ticket title is required",
+          err_model_loading: "Model is loading. Please wait.",
+          fb_heading: "Was the result correct?",
+          fb_sub: "Your feedback helps us improve the model",
+          fb_comment_ph: "What was correct or wrong? (optional)",
+          fb_email_ph: "Your email (optional)",
+          fb_submit: "Submit Feedback",
+          fb_skip: "Skip",
+          fb_thanks: "Thank you for your feedback! 🎉",
+          fb_err_select: "Please select 👍 or 👎 first",
+          alts_title: "Alternatives",
+          latency_ms: "Response time",
+        },
+      };
 
-    <!-- Inline feedback card (shown after classify) -->
-    <div id="feedbackSection" class="hidden">
-      <!-- feedback-card injected by JS so the slide-in animation fires each time -->
-    </div>
-  </div>
-
-  <script>
-    // ── i18n ───────────────────────────────────────────────────────────────────
-    const T = {
-      ar: {
-        nav_catalog: 'الكتالوج', nav_dashboard: 'لوحة البيانات', nav_research: 'مقارنة بحثية',
-        status_preparing: 'جاري الإعداد...', status_ready: 'النموذج جاهز للاستخدام',
-        status_error: 'فشل تحميل النموذج',
-        field_title: 'عنوان التذكرة', field_desc: 'وصف المشكلة (اختياري)',
-        ph_title: 'مثال: الـ VPN مش شغال', ph_desc: 'اكتب التفاصيل هنا',
-        tip_title: 'أدخل العنوان المختصر للمشكلة أو الطلب',
-        tip_conf: 'نسبة ثقة النموذج بالتصنيف — كلما زادت كلما كانت النتيجة أدق',
-        tip_l1: 'التصنيف الرئيسي (المستوى الأول) — 6 فئات رئيسية',
-        tip_l2: 'التصنيف الفرعي (المستوى الثاني) — 16 فئة فرعية',
-        tip_l3: 'نوع المشكلة التفصيلي (المستوى الثالث) — 48 نوعاً',
-        prof_best_for: 'مناسب لـ',
-        prof_params: 'المعاملات',
-        prof_downloads: 'تنزيلات شهرية',
-        prof_base: 'الأساس',
-        prof_hf_link: 'عرض على Hugging Face',
-        btn_loading: 'تحميل النموذج...',
-        btn_classify: 'تصنيف التذكرة',
-        btn_classifying: 'جاري التصنيف...',
-        btn_view_dashboard: 'عرض في لوحة البيانات',
-        samples_label: 'أمثلة سريعة',
-        err_empty_title: 'عنوان التذكرة مطلوب', err_model_loading: 'النموذج قيد التحميل. يرجى الانتظار.',
-        fb_heading: 'هل كانت النتيجة صحيحة؟',
-        fb_sub: 'تقييمك يساعدنا في تحسين النموذج',
-        fb_comment_ph: 'ما الذي كان صحيحاً أو خاطئاً؟ (اختياري)',
-        fb_email_ph: 'بريدك الإلكتروني (اختياري)',
-        fb_submit: 'إرسال التقييم', fb_skip: 'تخطي',
-        fb_thanks: 'شكراً على تقييمك! 🎉',
-        fb_err_select: 'يرجى الضغط على 👍 أو 👎 أولاً',
-        alts_title: 'بدائل',
-        latency_ms: 'وقت الاستجابة',
-      },
-      en: {
-        nav_catalog: 'Catalog', nav_dashboard: 'Dashboard', nav_research: 'Research',
-        status_preparing: 'Preparing model...', status_ready: 'Model ready for inference',
-        status_error: 'Model loading failed',
-        field_title: 'Ticket Title', field_desc: 'Problem Description (optional)',
-        ph_title: 'e.g., VPN is not working', ph_desc: 'Describe the issue here',
-        tip_title: 'Enter a short summary of the request or problem',
-        tip_conf: 'Model confidence in this classification — higher is more reliable',
-        tip_l1: 'Primary classification (Level 1) — 6 main categories',
-        tip_l2: 'Sub-classification (Level 2) — 16 sub-categories',
-        tip_l3: 'Detailed issue type (Level 3) — 48 types',
-        prof_best_for: 'Best for',
-        prof_params: 'Parameters',
-        prof_downloads: 'Monthly downloads',
-        prof_base: 'Base model',
-        prof_hf_link: 'View on Hugging Face',
-        btn_loading: 'Loading model...',
-        btn_classify: 'Classify Ticket',
-        btn_classifying: 'Classifying...',
-        btn_view_dashboard: 'View in Dashboard',
-        samples_label: 'Quick Examples',
-        err_empty_title: 'Ticket title is required', err_model_loading: 'Model is loading. Please wait.',
-        fb_heading: 'Was the result correct?',
-        fb_sub: 'Your feedback helps us improve the model',
-        fb_comment_ph: 'What was correct or wrong? (optional)',
-        fb_email_ph: 'Your email (optional)',
-        fb_submit: 'Submit Feedback', fb_skip: 'Skip',
-        fb_thanks: 'Thank you for your feedback! 🎉',
-        fb_err_select: 'Please select 👍 or 👎 first',
-        alts_title: 'Alternatives',
-        latency_ms: 'Response time',
+      let LANG = localStorage.getItem("lang") || "en";
+      function applyLang() {
+        document.documentElement.setAttribute("data-lang", LANG);
+        document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+        document.documentElement.lang = LANG;
+        document.getElementById("langBtn").textContent =
+          LANG === "ar" ? "EN" : "عر";
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          if (T[LANG][key]) el.textContent = T[LANG][key];
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          const key = el.getAttribute("data-i18n-placeholder");
+          if (T[LANG][key]) el.placeholder = T[LANG][key];
+        });
       }
-    };
-
-    let LANG = localStorage.getItem('lang') || 'en';
-    function applyLang() {
-      document.documentElement.setAttribute('data-lang', LANG);
-      document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
-      document.documentElement.lang = LANG;
-      document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'عر';
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (T[LANG][key]) el.textContent = T[LANG][key];
-      });
-      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.getAttribute('data-i18n-placeholder');
-        if (T[LANG][key]) el.placeholder = T[LANG][key];
-      });
-    }
-    function t(key) { return T[LANG][key] || key; }
-
-    (function() {
-      document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
-      applyLang();
-    })();
-
-    document.getElementById('langBtn').addEventListener('click', () => {
-      LANG = LANG === 'ar' ? 'en' : 'ar';
-      localStorage.setItem('lang', LANG);
-      applyLang();
-      renderProfileInfo();
-      lucide.createIcons();
-    });
-
-    document.getElementById('themeBtn').addEventListener('click', () => {
-      const root = document.documentElement;
-      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      document.querySelector('.icon-dark').classList.toggle('hidden', next === 'dark');
-      document.querySelector('.icon-light').classList.toggle('hidden', next === 'light');
-      lucide.createIcons();
-    });
-
-    lucide.createIcons();
-
-    // ── Page state ──────────────────────────────────────────────────────────────
-    const modelId = decodeURIComponent(location.pathname.split('/').pop() || '');
-    let modelReady = false;
-    let statusTimer = null;
-    let currentClassificationId = null;
-    let selectedThumb = null;
-
-    const titleEl     = document.getElementById('title');
-    const subtitleEl  = document.getElementById('subtitle');
-    const metaEl      = document.getElementById('meta');
-    const btn         = document.getElementById('btn');
-    const errEl       = document.getElementById('error');
-    const resultsEl   = document.getElementById('results');
-    const afterResults = document.getElementById('afterResults');
-    const latencyEl   = document.getElementById('latency');
-    const statusBox   = document.getElementById('statusBox');
-    const statusText  = document.getElementById('statusText');
-    const loadProgress = document.getElementById('loadProgress');
-    const samplesEl   = document.getElementById('samples');
-    const feedbackSection = document.getElementById('feedbackSection');
-    const profileBox = document.getElementById('profileBox');
-
-    const MODEL_PROFILES = {
-      'marbert-arabic-itsm-multitask': {
-        summary: {
-          en: 'Unified multitask checkpoint covering multiple classification heads in one model.',
-          ar: 'نموذج موحد متعدد المهام يغطي عدة مستويات تصنيف داخل نقطة تفتيش واحدة.'
-        },
-        bestFor: { en: 'single-model demos and wide coverage', ar: 'عروض بنموذج واحد وتغطية واسعة' },
-        params: '0.2B',
-        downloads: '12',
-        baseModel: 'UBC-NLP/MARBERTv2',
-        hfUrl: 'https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask',
-        artLabel: 'MULTITASK',
-        image: '/assets/arabic-itsm-multitask-hero.png'
-      },
-      'arabert-arabic-itsm-l3-categories': {
-        summary: {
-          en: 'AraBERT L3-specialized checkpoint for fine-grained issue-type categorization.',
-          ar: 'نموذج AraBERT متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.'
-        },
-        bestFor: { en: 'AraBERT-based granular category detail', ar: 'تفاصيل تصنيف دقيقة باستخدام AraBERT' },
-        params: '0.1B',
-        downloads: '—',
-        baseModel: 'aubmindlab/bert-base-arabertv02',
-        hfUrl: 'https://huggingface.co/albaz2000/arabert-arabic-itsm-l3-categories',
-        artLabel: 'ARABERT L3',
-        image: '/assets/arabert-itsm-l3-hero.jpg'
-      },
-      'arabert-l1l2l3': {
-        summary: {
-          en: 'AraBERT L3-specialized checkpoint for fine-grained issue-type categorization.',
-          ar: 'نموذج AraBERT متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.'
-        },
-        bestFor: { en: 'AraBERT-based granular category detail', ar: 'تفاصيل تصنيف دقيقة باستخدام AraBERT' },
-        params: '0.1B',
-        downloads: '—',
-        baseModel: 'aubmindlab/bert-base-arabertv02',
-        hfUrl: 'https://huggingface.co/albaz2000/arabert-arabic-itsm-l3-categories',
-        artLabel: 'ARABERT L3',
-        image: '/assets/arabert-itsm-l3-hero.jpg'
-      },
-      'marbert-arabic-itsm-l3-categories': {
-        summary: {
-          en: 'L3-specialized checkpoint for fine-grained issue-type categorization.',
-          ar: 'نموذج متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.'
-        },
-        bestFor: { en: 'high-granularity category detail', ar: 'تفاصيل دقيقة للتصنيف' },
-        params: '0.2B',
-        downloads: '18',
-        baseModel: 'UBC-NLP/MARBERTv2',
-        hfUrl: 'https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories',
-        artLabel: 'L3 CATEGORIES',
-        image: '/assets/arabic-itsm-l3-hero.png'
-      },
-      'byt5-arabic-itsm-l3-categories': {
-        summary: {
-          en: 'ByT5 checkpoint for character-level L3 issue categorization that handles noisy Arabic text, mixed scripts, and formatting variation more gracefully.',
-          ar: 'نموذج ByT5 لتصنيف L3 على مستوى المحارف ويتعامل بشكل أفضل مع النص العربي المشوش والمحتوى المختلط بين اللغات وتباين التنسيق.'
-        },
-        bestFor: { en: 'noisy-text L3 routing and mixed-script tickets', ar: 'توجيه L3 للنصوص المشوشة والتذاكر المختلطة بين اللغات' },
-        params: '0.3B',
-        downloads: 'new',
-        baseModel: 'google/byt5-large',
-        hfUrl: 'https://huggingface.co/albaz2000/byt5-arabic-itsm-l3-categories',
-        artLabel: 'BYT5 L3',
-        image: '/assets/byt5-itsm-l3-hero.png'
+      function t(key) {
+        return T[LANG][key] || key;
       }
-    };
 
-    const sampleTickets = [
-      { title: 'الـ VPN مش شغال', description: 'اليوزر مش قادر يدخل على الشبكة الداخلية من البيت.' },
-      { title: 'نسيت باسورد الإيميل', description: 'محتاج reset لحساب Outlook بشكل عاجل.' },
-      { title: 'الطابعة في الدور الثالث واقفة', description: 'بتظهر رسالة paper jam ومش بتطبع أي مستند.' },
-      { title: 'الجهاز بطيء جدا بعد آخر تحديث', description: 'البرامج بتفتح ببطء والجهاز بيهنج بشكل متكرر.' }
-    ];
+      (function () {
+        document.documentElement.setAttribute(
+          "data-theme",
+          localStorage.getItem("theme") || "light",
+        );
+        applyLang();
+      })();
 
-    // ── Error helpers ───────────────────────────────────────────────────────────
-    function showError(msg) { errEl.style.display = 'block'; errEl.textContent = msg; }
-    function clearError() { errEl.style.display = 'none'; errEl.textContent = ''; }
-
-    // ── Model ready state ───────────────────────────────────────────────────────
-    function setReady(ready) {
-      modelReady = ready;
-      btn.disabled = !ready;
-      btn.innerHTML = ready
-        ? `<i data-lucide="sparkles" style="width:18px;height:18px;"></i> ${t('btn_classify')}`
-        : t('btn_loading');
-      lucide.createIcons();
-    }
-
-    // ── Samples ─────────────────────────────────────────────────────────────────
-    function renderSamples() {
-      samplesEl.innerHTML = sampleTickets
-        .map((item, i) => `<button class="sample" type="button" data-index="${i}">${item.title}</button>`)
-        .join('');
-      samplesEl.addEventListener('click', (e) => {
-        const chip = e.target.closest('.sample');
-        if (!chip) return;
-        const sample = sampleTickets[Number(chip.dataset.index)];
-        if (!sample) return;
-        document.getElementById('title_ar').value = sample.title;
-        document.getElementById('description_ar').value = sample.description;
+      document.getElementById("langBtn").addEventListener("click", () => {
+        LANG = LANG === "ar" ? "en" : "ar";
+        localStorage.setItem("lang", LANG);
+        applyLang();
+        renderProfileInfo();
+        lucide.createIcons();
       });
-    }
 
-    function buildModelArt(label, variant) {
-      const gradA = variant === 'l3' ? '#0f766e' : '#1d4ed8';
-      const gradB = variant === 'l3' ? '#0ea5e9' : '#9333ea';
-      const svg = `
+      document.getElementById("themeBtn").addEventListener("click", () => {
+        const root = document.documentElement;
+        const next =
+          root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        localStorage.setItem("theme", next);
+        document
+          .querySelector(".icon-dark")
+          .classList.toggle("hidden", next === "dark");
+        document
+          .querySelector(".icon-light")
+          .classList.toggle("hidden", next === "light");
+        lucide.createIcons();
+      });
+
+      lucide.createIcons();
+
+      // ── Page state ──────────────────────────────────────────────────────────────
+      const modelId = decodeURIComponent(
+        location.pathname.split("/").pop() || "",
+      );
+      let modelReady = false;
+      let statusTimer = null;
+      let currentClassificationId = null;
+      let selectedThumb = null;
+
+      const titleEl = document.getElementById("title");
+      const subtitleEl = document.getElementById("subtitle");
+      const metaEl = document.getElementById("meta");
+      const btn = document.getElementById("btn");
+      const errEl = document.getElementById("error");
+      const resultsEl = document.getElementById("results");
+      const afterResults = document.getElementById("afterResults");
+      const latencyEl = document.getElementById("latency");
+      const statusBox = document.getElementById("statusBox");
+      const statusText = document.getElementById("statusText");
+      const loadProgress = document.getElementById("loadProgress");
+      const samplesEl = document.getElementById("samples");
+      const feedbackSection = document.getElementById("feedbackSection");
+      const profileBox = document.getElementById("profileBox");
+
+      const MODEL_PROFILES = {
+        "marbert-arabic-itsm-multitask": {
+          summary: {
+            en: "Unified multitask checkpoint covering multiple classification heads in one model.",
+            ar: "نموذج موحد متعدد المهام يغطي عدة مستويات تصنيف داخل نقطة تفتيش واحدة.",
+          },
+          bestFor: {
+            en: "single-model demos and wide coverage",
+            ar: "عروض بنموذج واحد وتغطية واسعة",
+          },
+          params: "0.2B",
+          downloads: "12",
+          baseModel: "UBC-NLP/MARBERTv2",
+          hfUrl:
+            "https://huggingface.co/albaz2000/marbert-arabic-itsm-multitask",
+          artLabel: "MULTITASK",
+          image: "/assets/arabic-itsm-multitask-hero.png",
+        },
+        "arabert-arabic-itsm-l3-categories": {
+          summary: {
+            en: "AraBERT L3-specialized checkpoint for fine-grained issue-type categorization.",
+            ar: "نموذج AraBERT متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.",
+          },
+          bestFor: {
+            en: "AraBERT-based granular category detail",
+            ar: "تفاصيل تصنيف دقيقة باستخدام AraBERT",
+          },
+          params: "0.1B",
+          downloads: "—",
+          baseModel: "aubmindlab/bert-base-arabertv02",
+          hfUrl:
+            "https://huggingface.co/albaz2000/arabert-arabic-itsm-l3-categories",
+          artLabel: "ARABERT L3",
+          image: "/assets/arabert-itsm-l3-hero.jpg",
+        },
+        "arabert-l1l2l3": {
+          summary: {
+            en: "AraBERT L3-specialized checkpoint for fine-grained issue-type categorization.",
+            ar: "نموذج AraBERT متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.",
+          },
+          bestFor: {
+            en: "AraBERT-based granular category detail",
+            ar: "تفاصيل تصنيف دقيقة باستخدام AraBERT",
+          },
+          params: "0.1B",
+          downloads: "—",
+          baseModel: "aubmindlab/bert-base-arabertv02",
+          hfUrl:
+            "https://huggingface.co/albaz2000/arabert-arabic-itsm-l3-categories",
+          artLabel: "ARABERT L3",
+          image: "/assets/arabert-itsm-l3-hero.jpg",
+        },
+        "marbert-arabic-itsm-l3-categories": {
+          summary: {
+            en: "MarBERT L3-specialized checkpoint for fine-grained issue-type categorization.",
+            ar: "نموذج MarBERT متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.",
+          },
+          bestFor: {
+            en: "high-granularity category detail",
+            ar: "تفاصيل دقيقة للتصنيف",
+          },
+          params: "0.2B",
+          downloads: "18",
+          baseModel: "UBC-NLP/MARBERTv2",
+          hfUrl:
+            "https://huggingface.co/albaz2000/marbert-arabic-itsm-l3-categories",
+          artLabel: "L3 CATEGORIES",
+          image: "/assets/arabic-itsm-l3-hero.png",
+        },
+        "byt5-arabic-itsm-l3-categories": {
+          summary: {
+            en: "ByT5 L3-specialized checkpoint for fine-grained issue-type categorization.",
+            ar: "نموذج ByT5 متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.",
+          },
+          bestFor: {
+            en: "noisy-text L3 routing and mixed-script tickets",
+            ar: "توجيه L3 للنصوص المشوشة والتذاكر المختلطة بين اللغات",
+          },
+          params: "0.3B",
+          downloads: "new",
+          baseModel: "google/byt5-large",
+          hfUrl:
+            "https://huggingface.co/albaz2000/byt5-arabic-itsm-l3-categories",
+          artLabel: "BYT5 L3",
+          image: "/assets/byt5-itsm-l3-hero.png",
+        },
+        "egybert-itsm-l3-categories": {
+          summary: {
+            en: "EgyBERT L3-specialized checkpoint for fine-grained issue-type categorization.",
+            ar: "نموذج EgyBERT متخصص في L3 لتصنيفات نوع المشكلة الدقيقة.",
+          },
+          bestFor: {
+            en: "egyptian L3 routing and mixed-script tickets",
+            ar: "توجيه L3 للنصوص المشوشة والتذاكر المصرية بين اللغات",
+          },
+          params: "0.1B",
+          downloads: "new",
+          baseModel: "google/egybert-large",
+          hfUrl: "https://huggingface.co/albaz2000/egybert-itsm-l3-categories",
+          artLabel: "EGYBERT L3",
+          image: "/assets/egybert-itsm-l3-hero.png",
+        },
+      };
+
+      const sampleTickets = [
+        {
+          title: "الـ VPN مش شغال",
+          description: "اليوزر مش قادر يدخل على الشبكة الداخلية من البيت.",
+        },
+        {
+          title: "نسيت باسورد الإيميل",
+          description: "محتاج reset لحساب Outlook بشكل عاجل.",
+        },
+        {
+          title: "الطابعة في الدور الثالث واقفة",
+          description: "بتظهر رسالة paper jam ومش بتطبع أي مستند.",
+        },
+        {
+          title: "الجهاز بطيء جدا بعد آخر تحديث",
+          description: "البرامج بتفتح ببطء والجهاز بيهنج بشكل متكرر.",
+        },
+      ];
+
+      // ── Error helpers ───────────────────────────────────────────────────────────
+      function showError(msg) {
+        errEl.style.display = "block";
+        errEl.textContent = msg;
+      }
+      function clearError() {
+        errEl.style.display = "none";
+        errEl.textContent = "";
+      }
+
+      // ── Model ready state ───────────────────────────────────────────────────────
+      function setReady(ready) {
+        modelReady = ready;
+        btn.disabled = !ready;
+        btn.innerHTML = ready
+          ? `<i data-lucide="sparkles" style="width:18px;height:18px;"></i> ${t("btn_classify")}`
+          : t("btn_loading");
+        lucide.createIcons();
+      }
+
+      // ── Samples ─────────────────────────────────────────────────────────────────
+      function renderSamples() {
+        samplesEl.innerHTML = sampleTickets
+          .map(
+            (item, i) =>
+              `<button class="sample" type="button" data-index="${i}">${item.title}</button>`,
+          )
+          .join("");
+        samplesEl.addEventListener("click", (e) => {
+          const chip = e.target.closest(".sample");
+          if (!chip) return;
+          const sample = sampleTickets[Number(chip.dataset.index)];
+          if (!sample) return;
+          document.getElementById("title_ar").value = sample.title;
+          document.getElementById("description_ar").value = sample.description;
+        });
+      }
+
+      function buildModelArt(label, variant) {
+        const gradA = variant === "l3" ? "#0f766e" : "#1d4ed8";
+        const gradB = variant === "l3" ? "#0ea5e9" : "#9333ea";
+        const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
           <defs>
             <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
@@ -449,67 +747,80 @@
           <text x="58" y="386" font-size="28" fill="rgba(255,255,255,0.88)" font-family="Inter, Arial, sans-serif">Arabic ITSM Classification</text>
         </svg>
       `.trim();
-      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-    }
+        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+      }
 
-    function profileFor(id) {
-      return MODEL_PROFILES[id] || {
-        summary: { en: 'Arabic ITSM classification model profile.', ar: 'ملف تعريف لنموذج تصنيف تذاكر ITSM بالعربية.' },
-        bestFor: { en: 'general Arabic ITSM inference', ar: 'تصنيف عربي عام لتذاكر ITSM' },
-        params: '—',
-        downloads: '—',
-        baseModel: '—',
-        hfUrl: '',
-        artLabel: 'ARABIC ITSM',
-        image: ''
-      };
-    }
+      function profileFor(id) {
+        return (
+          MODEL_PROFILES[id] || {
+            summary: {
+              en: "Arabic ITSM classification model profile.",
+              ar: "ملف تعريف لنموذج تصنيف تذاكر ITSM بالعربية.",
+            },
+            bestFor: {
+              en: "general Arabic ITSM inference",
+              ar: "تصنيف عربي عام لتذاكر ITSM",
+            },
+            params: "—",
+            downloads: "—",
+            baseModel: "—",
+            hfUrl: "",
+            artLabel: "ARABIC ITSM",
+            image: "",
+          }
+        );
+      }
 
-    function renderProfileInfo() {
-      const p = profileFor(modelId);
-      const art = p.image || buildModelArt(p.artLabel || 'ARABIC ITSM', modelId.includes('l3') ? 'l3' : 'multi');
-      profileBox.innerHTML = `
-        <p>${LANG === 'ar' ? p.summary.ar : p.summary.en}</p>
+      function renderProfileInfo() {
+        const p = profileFor(modelId);
+        const art =
+          p.image ||
+          buildModelArt(
+            p.artLabel || "ARABIC ITSM",
+            modelId.includes("l3") ? "l3" : "multi",
+          );
+        profileBox.innerHTML = `
+        <p>${LANG === "ar" ? p.summary.ar : p.summary.en}</p>
         <div class="profile-grid">
-          <div class="profile-cell"><span class="profile-k">${t('prof_best_for')}</span><span class="profile-v">${LANG === 'ar' ? p.bestFor.ar : p.bestFor.en}</span></div>
-          <div class="profile-cell"><span class="profile-k">${t('prof_params')}</span><span class="profile-v">${p.params}</span></div>
-          <div class="profile-cell"><span class="profile-k">${t('prof_downloads')}</span><span class="profile-v">${p.downloads}</span></div>
-          <div class="profile-cell"><span class="profile-k">${t('prof_base')}</span><span class="profile-v">${p.baseModel}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t("prof_best_for")}</span><span class="profile-v">${LANG === "ar" ? p.bestFor.ar : p.bestFor.en}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t("prof_params")}</span><span class="profile-v">${p.params}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t("prof_downloads")}</span><span class="profile-v">${p.downloads}</span></div>
+          <div class="profile-cell"><span class="profile-k">${t("prof_base")}</span><span class="profile-v">${p.baseModel}</span></div>
         </div>
-        ${p.hfUrl ? `<div style="margin-top:0.7rem;"><a class="btn" href="${p.hfUrl}" target="_blank" rel="noopener noreferrer">${t('prof_hf_link')}</a></div>` : ''}
+        ${p.hfUrl ? `<div style="margin-top:0.7rem;"><a class="btn" href="${p.hfUrl}" target="_blank" rel="noopener noreferrer">${t("prof_hf_link")}</a></div>` : ""}
         <div class="profile-hero"><img src="${art}" alt="${modelId} illustration"></div>
       `;
-    }
-
-    // ── Profile loading ─────────────────────────────────────────────────────────
-    async function loadProfile() {
-      const res = await fetch('/api/models');
-      const data = await res.json();
-      const model = (data.models || []).find(m => m.id === modelId);
-      if (!model) {
-        titleEl.textContent = 'Unknown Model';
-        statusBox.className = 'status-box error';
-        statusText.textContent = t('status_error');
-        return false;
       }
-      titleEl.textContent = model.name;
-      subtitleEl.textContent = `model_id: ${model.id}`;
-      metaEl.textContent = model.path;
-      renderProfileInfo();
-      return true;
-    }
 
-    // ── Task card renderer ──────────────────────────────────────────────────────
-    const TASK_TIPS = { l1: 'tip_l1', l2: 'tip_l2', l3: 'tip_l3' };
-    function renderTask(taskName, payload) {
-      const top3 = payload.top3 || [];
-      const conf = Number(payload.confidence || 0);
-      const confPct = (conf * 100).toFixed(2);
-      const tipKey = TASK_TIPS[taskName];
-      const tipHtml = tipKey
-        ? `<span class="tooltip" style="margin-right:4px;"><span class="tip-icon">?</span><span class="tooltip-text">${t(tipKey)}</span></span>`
-        : '';
-      return `
+      // ── Profile loading ─────────────────────────────────────────────────────────
+      async function loadProfile() {
+        const res = await fetch("/api/models");
+        const data = await res.json();
+        const model = (data.models || []).find((m) => m.id === modelId);
+        if (!model) {
+          titleEl.textContent = "Unknown Model";
+          statusBox.className = "status-box error";
+          statusText.textContent = t("status_error");
+          return false;
+        }
+        titleEl.textContent = model.name;
+        subtitleEl.textContent = `model_id: ${model.id}`;
+        metaEl.textContent = model.path;
+        renderProfileInfo();
+        return true;
+      }
+
+      // ── Task card renderer ──────────────────────────────────────────────────────
+      const TASK_TIPS = { l1: "tip_l1", l2: "tip_l2", l3: "tip_l3" };
+      function renderTask(taskName, payload) {
+        const top3 = payload.top3 || [];
+        const conf = Number(payload.confidence || 0);
+        const confPct = (conf * 100).toFixed(2);
+        const tipKey = TASK_TIPS[taskName];
+        const tipHtml = tipKey
+          ? `<span class="tooltip" style="margin-right:4px;"><span class="tip-icon">?</span><span class="tooltip-text">${t(tipKey)}</span></span>`
+          : "";
+        return `
         <article class="task-card">
           <h3 style="display:flex;align-items:center;gap:4px;">
             ${taskName.toUpperCase()} ${tipHtml}
@@ -519,73 +830,82 @@
             <span class="tooltip">
               <span>${confPct}%</span>
               <span class="tip-icon">?</span>
-              <span class="tooltip-text">${t('tip_conf')}</span>
+              <span class="tooltip-text">${t("tip_conf")}</span>
             </span>
           </div>
           <div class="task-bar"><div class="task-fill" style="width:${confPct}%"></div></div>
           <div class="alts">
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.35rem;text-transform:uppercase;letter-spacing:0.04em;">${t('alts_title')}</div>
-            ${top3.map(x => `
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.35rem;text-transform:uppercase;letter-spacing:0.04em;">${t("alts_title")}</div>
+            ${top3
+              .map(
+                (x) => `
               <div>
                 <div class="alt-row"><span>${x.label}</span><span style="color:var(--text-muted)">${(x.prob * 100).toFixed(1)}%</span></div>
                 <div class="alt-bar"><div class="alt-fill" style="width:${(x.prob * 100).toFixed(2)}%"></div></div>
               </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </div>
         </article>
       `;
-    }
-
-    // ── Status polling ──────────────────────────────────────────────────────────
-    async function pollStatusUntilReady() {
-      if (statusTimer) clearInterval(statusTimer);
-      async function check() {
-        const res = await fetch(`/api/models/${encodeURIComponent(modelId)}/status`);
-        const s = await res.json();
-        const progress = Number(s.progress || 0);
-        loadProgress.style.width = `${progress}%`;
-        statusText.textContent = `${s.message || s.status} (${progress}%)`;
-        if (s.status === 'ready' || s.loaded) {
-          statusBox.className = 'status-box ok';
-          statusText.textContent = t('status_ready');
-          loadProgress.style.width = '100%';
-          setReady(true);
-          clearInterval(statusTimer);
-        } else if (s.status === 'error') {
-          statusBox.className = 'status-box error';
-          statusText.textContent = s.error || t('status_error');
-          setReady(false);
-          clearInterval(statusTimer);
-        } else {
-          statusBox.className = 'status-box warn';
-          setReady(false);
-        }
       }
-      await check();
-      statusTimer = setInterval(async () => {
-        try { await check(); }
-        catch (err) {
-          statusBox.className = 'status-box error';
-          statusText.textContent = `Status error: ${err.message}`;
-          clearInterval(statusTimer);
+
+      // ── Status polling ──────────────────────────────────────────────────────────
+      async function pollStatusUntilReady() {
+        if (statusTimer) clearInterval(statusTimer);
+        async function check() {
+          const res = await fetch(
+            `/api/models/${encodeURIComponent(modelId)}/status`,
+          );
+          const s = await res.json();
+          const progress = Number(s.progress || 0);
+          loadProgress.style.width = `${progress}%`;
+          statusText.textContent = `${s.message || s.status} (${progress}%)`;
+          if (s.status === "ready" || s.loaded) {
+            statusBox.className = "status-box ok";
+            statusText.textContent = t("status_ready");
+            loadProgress.style.width = "100%";
+            setReady(true);
+            clearInterval(statusTimer);
+          } else if (s.status === "error") {
+            statusBox.className = "status-box error";
+            statusText.textContent = s.error || t("status_error");
+            setReady(false);
+            clearInterval(statusTimer);
+          } else {
+            statusBox.className = "status-box warn";
+            setReady(false);
+          }
         }
-      }, 700);
-    }
+        await check();
+        statusTimer = setInterval(async () => {
+          try {
+            await check();
+          } catch (err) {
+            statusBox.className = "status-box error";
+            statusText.textContent = `Status error: ${err.message}`;
+            clearInterval(statusTimer);
+          }
+        }, 700);
+      }
 
-    async function startPreload() {
-      await fetch(`/api/models/${encodeURIComponent(modelId)}/preload`, { method: 'POST' });
-      await pollStatusUntilReady();
-    }
+      async function startPreload() {
+        await fetch(`/api/models/${encodeURIComponent(modelId)}/preload`, {
+          method: "POST",
+        });
+        await pollStatusUntilReady();
+      }
 
-    // ── Inline feedback card ────────────────────────────────────────────────────
-    function renderFeedbackCard() {
-      // Re-inject the card HTML each time so the slide-in animation re-fires
-      feedbackSection.innerHTML = `
+      // ── Inline feedback card ────────────────────────────────────────────────────
+      function renderFeedbackCard() {
+        // Re-inject the card HTML each time so the slide-in animation re-fires
+        feedbackSection.innerHTML = `
         <div class="feedback-card" id="fbCard">
           <div class="feedback-card-header">
             <div>
-              <div class="feedback-card-title" data-i18n="fb_heading">${t('fb_heading')}</div>
-              <div class="feedback-card-sub" data-i18n="fb_sub">${t('fb_sub')}</div>
+              <div class="feedback-card-title" data-i18n="fb_heading">${t("fb_heading")}</div>
+              <div class="feedback-card-sub" data-i18n="fb_sub">${t("fb_sub")}</div>
             </div>
             <div class="inline-thumbs">
               <button class="inline-thumb" id="thumbUp" type="button" aria-label="Thumbs up">👍</button>
@@ -596,13 +916,13 @@
           <div id="fbExtra" class="hidden">
             <div class="feedback-extra">
               <textarea id="fbComment" class="form-textarea"
-                placeholder="${t('fb_comment_ph')}" maxlength="500"></textarea>
+                placeholder="${t("fb_comment_ph")}" maxlength="500"></textarea>
               <input id="fbEmail" type="email" class="form-input"
-                placeholder="${t('fb_email_ph')}">
+                placeholder="${t("fb_email_ph")}">
             </div>
             <div class="feedback-actions">
-              <button class="btn btn-primary" id="fbSubmitBtn" type="button">${t('fb_submit')}</button>
-              <button class="btn" id="fbSkipBtn" type="button">${t('fb_skip')}</button>
+              <button class="btn btn-primary" id="fbSubmitBtn" type="button">${t("fb_submit")}</button>
+              <button class="btn" id="fbSkipBtn" type="button">${t("fb_skip")}</button>
               <div class="error-box" id="fbError" style="margin:0;flex:1;"></div>
             </div>
           </div>
@@ -610,142 +930,184 @@
           <div id="fbThanks" class="hidden">
             <div class="feedback-thanks">
               <i data-lucide="check-circle" style="width:18px;height:18px;"></i>
-              ${t('fb_thanks')}
+              ${t("fb_thanks")}
             </div>
           </div>
         </div>
       `;
-      lucide.createIcons();
+        lucide.createIcons();
 
-      selectedThumb = null;
+        selectedThumb = null;
 
-      // Thumb buttons
-      document.getElementById('thumbUp').addEventListener('click', () => {
-        selectedThumb = 'up';
-        document.getElementById('thumbUp').className = 'inline-thumb selected-up';
-        document.getElementById('thumbDown').className = 'inline-thumb';
-        document.getElementById('fbExtra').classList.remove('hidden');
-      });
-      document.getElementById('thumbDown').addEventListener('click', () => {
-        selectedThumb = 'down';
-        document.getElementById('thumbDown').className = 'inline-thumb selected-down';
-        document.getElementById('thumbUp').className = 'inline-thumb';
-        document.getElementById('fbExtra').classList.remove('hidden');
-      });
+        // Thumb buttons
+        document.getElementById("thumbUp").addEventListener("click", () => {
+          selectedThumb = "up";
+          document.getElementById("thumbUp").className =
+            "inline-thumb selected-up";
+          document.getElementById("thumbDown").className = "inline-thumb";
+          document.getElementById("fbExtra").classList.remove("hidden");
+        });
+        document.getElementById("thumbDown").addEventListener("click", () => {
+          selectedThumb = "down";
+          document.getElementById("thumbDown").className =
+            "inline-thumb selected-down";
+          document.getElementById("thumbUp").className = "inline-thumb";
+          document.getElementById("fbExtra").classList.remove("hidden");
+        });
 
-      // Skip
-      document.getElementById('fbSkipBtn').addEventListener('click', () => {
-        feedbackSection.classList.add('hidden');
-      });
+        // Skip
+        document.getElementById("fbSkipBtn").addEventListener("click", () => {
+          feedbackSection.classList.add("hidden");
+        });
 
-      // Submit
-      document.getElementById('fbSubmitBtn').addEventListener('click', async () => {
-        const fbErr = document.getElementById('fbError');
-        if (!selectedThumb) {
-          fbErr.style.display = 'block';
-          fbErr.textContent = t('fb_err_select');
+        // Submit
+        document
+          .getElementById("fbSubmitBtn")
+          .addEventListener("click", async () => {
+            const fbErr = document.getElementById("fbError");
+            if (!selectedThumb) {
+              fbErr.style.display = "block";
+              fbErr.textContent = t("fb_err_select");
+              return;
+            }
+            if (!currentClassificationId) return;
+            fbErr.style.display = "none";
+            try {
+              const res = await fetch("/api/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  classification_id: currentClassificationId,
+                  thumbs: selectedThumb,
+                  comment:
+                    document.getElementById("fbComment").value.trim() || null,
+                  email:
+                    document.getElementById("fbEmail").value.trim() || null,
+                }),
+              });
+              if (!res.ok) {
+                const d = await res.json();
+                throw new Error(d.detail);
+              }
+              document.getElementById("fbExtra").classList.add("hidden");
+              document
+                .getElementById("fbCard")
+                .querySelector(".feedback-card-header")
+                .classList.add("hidden");
+              document.getElementById("fbThanks").classList.remove("hidden");
+              lucide.createIcons();
+            } catch (err) {
+              fbErr.style.display = "block";
+              fbErr.textContent = err.message;
+            }
+          });
+      }
+
+      // ── Classify ────────────────────────────────────────────────────────────────
+      async function classify() {
+        clearError();
+        resultsEl.innerHTML = "";
+        afterResults.classList.add("hidden");
+        feedbackSection.classList.add("hidden");
+        feedbackSection.innerHTML = "";
+        currentClassificationId = null;
+
+        const titleAr = document.getElementById("title_ar").value.trim();
+        const descriptionAr = document
+          .getElementById("description_ar")
+          .value.trim();
+        if (!titleAr) {
+          showError(t("err_empty_title"));
           return;
         }
-        if (!currentClassificationId) return;
-        fbErr.style.display = 'none';
+        if (!modelReady) {
+          showError(t("err_model_loading"));
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner"></div> ${t("btn_classifying")}`;
+
         try {
-          const res = await fetch('/api/feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              classification_id: currentClassificationId,
-              thumbs: selectedThumb,
-              comment: document.getElementById('fbComment').value.trim() || null,
-              email: document.getElementById('fbEmail').value.trim() || null,
-            })
-          });
-          if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
-          document.getElementById('fbExtra').classList.add('hidden');
-          document.getElementById('fbCard').querySelector('.feedback-card-header').classList.add('hidden');
-          document.getElementById('fbThanks').classList.remove('hidden');
+          const res = await fetch(
+            `/api/classify?model_id=${encodeURIComponent(modelId)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title_ar: titleAr,
+                description_ar: descriptionAr,
+              }),
+            },
+          );
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+          currentClassificationId = data.classification_id || null;
+
+          const tasks = data.tasks || [];
+          latencyEl.innerHTML = `<i data-lucide="timer" style="width:14px;height:14px;vertical-align:-2px;"></i> ${t("latency_ms")}: ${data.latency_ms} ms`;
           lucide.createIcons();
+          resultsEl.innerHTML = tasks
+            .map((task) => renderTask(task, data[task]))
+            .join("");
+          afterResults.classList.remove("hidden");
+
+          // Show inline feedback card below results
+          if (currentClassificationId) {
+            feedbackSection.classList.remove("hidden");
+            renderFeedbackCard();
+          }
         } catch (err) {
-          fbErr.style.display = 'block';
-          fbErr.textContent = err.message;
+          showError(err.message);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="sparkles" style="width:18px;height:18px;"></i> ${t("btn_classify")}`;
+          lucide.createIcons();
         }
+      }
+
+      btn.addEventListener("click", classify);
+      document.getElementById("title_ar").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") classify();
       });
-    }
 
-    // ── Classify ────────────────────────────────────────────────────────────────
-    async function classify() {
-      clearError();
-      resultsEl.innerHTML = '';
-      afterResults.classList.add('hidden');
-      feedbackSection.classList.add('hidden');
-      feedbackSection.innerHTML = '';
-      currentClassificationId = null;
-
-      const titleAr = document.getElementById('title_ar').value.trim();
-      const descriptionAr = document.getElementById('description_ar').value.trim();
-      if (!titleAr) { showError(t('err_empty_title')); return; }
-      if (!modelReady) { showError(t('err_model_loading')); return; }
-
-      btn.disabled = true;
-      btn.innerHTML = `<div class="spinner"></div> ${t('btn_classifying')}`;
-
-      try {
-        const res = await fetch(`/api/classify?model_id=${encodeURIComponent(modelId)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title_ar: titleAr, description_ar: descriptionAr })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-
-        currentClassificationId = data.classification_id || null;
-
-        const tasks = data.tasks || [];
-        latencyEl.innerHTML = `<i data-lucide="timer" style="width:14px;height:14px;vertical-align:-2px;"></i> ${t('latency_ms')}: ${data.latency_ms} ms`;
-        lucide.createIcons();
-        resultsEl.innerHTML = tasks.map(task => renderTask(task, data[task])).join('');
-        afterResults.classList.remove('hidden');
-
-        // Show inline feedback card below results
-        if (currentClassificationId) {
-          feedbackSection.classList.remove('hidden');
-          renderFeedbackCard();
+      // ── Init ────────────────────────────────────────────────────────────────────
+      (async () => {
+        renderSamples();
+        // Pre-fill form from URL params (used by dashboard "Rerun" button)
+        const urlParams = new URLSearchParams(location.search);
+        if (urlParams.get("prefill_title")) {
+          document.getElementById("title_ar").value = decodeURIComponent(
+            urlParams.get("prefill_title"),
+          );
         }
-      } catch (err) {
-        showError(err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="sparkles" style="width:18px;height:18px;"></i> ${t('btn_classify')}`;
-        lucide.createIcons();
-      }
-    }
+        if (urlParams.get("prefill_desc")) {
+          document.getElementById("description_ar").value = decodeURIComponent(
+            urlParams.get("prefill_desc"),
+          );
+        }
+        const ok = await loadProfile();
+        if (!ok) return;
+        await startPreload();
+      })().catch((err) => showError(err.message));
 
-    btn.addEventListener('click', classify);
-    document.getElementById('title_ar').addEventListener('keydown', e => {
-      if (e.key === 'Enter') classify();
-    });
-
-    // ── Init ────────────────────────────────────────────────────────────────────
-    (async () => {
-      renderSamples();
-      // Pre-fill form from URL params (used by dashboard "Rerun" button)
-      const urlParams = new URLSearchParams(location.search);
-      if (urlParams.get('prefill_title')) {
-        document.getElementById('title_ar').value = decodeURIComponent(urlParams.get('prefill_title'));
-      }
-      if (urlParams.get('prefill_desc')) {
-        document.getElementById('description_ar').value = decodeURIComponent(urlParams.get('prefill_desc'));
-      }
-      const ok = await loadProfile();
-      if (!ok) return;
-      await startPreload();
-    })().catch(err => showError(err.message));
-
-    document.querySelector('.icon-dark').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'dark');
-    document.querySelector('.icon-light').classList.toggle('hidden', document.documentElement.getAttribute('data-theme') === 'light');
-  </script>
-  <script type="module">
-    import { initAppShell } from '/static/js/shell.js';
-    initAppShell();
-  </script>
-</body>
+      document
+        .querySelector(".icon-dark")
+        .classList.toggle(
+          "hidden",
+          document.documentElement.getAttribute("data-theme") === "dark",
+        );
+      document
+        .querySelector(".icon-light")
+        .classList.toggle(
+          "hidden",
+          document.documentElement.getAttribute("data-theme") === "light",
+        );
+    </script>
+    <script type="module">
+      import { initAppShell } from "/static/js/shell.js";
+      initAppShell();
+    </script>
+  </body>
 </html>
